@@ -21,11 +21,14 @@ public partial class MainWindow : Window
 
     private readonly DisplayService displayService = new();
     private readonly DashboardStateProvider stateProvider = new();
+    private readonly SettingsService settingsService = new();
     private readonly TelemetryService telemetryService = new();
     private readonly AudioDeviceService audioDeviceService = new();
     private readonly MediaSessionService mediaSessionService = new();
     private readonly CancellationTokenSource telemetryCancellation = new();
     private readonly Forms.ContextMenuStrip trayMenu;
+    private readonly Forms.ToolStripMenuItem currentAppearanceMenuItem;
+    private readonly Forms.ToolStripMenuItem mediaOledAppearanceMenuItem;
     private readonly System.Drawing.Icon trayIconImage;
     private readonly Forms.NotifyIcon trayIcon;
 
@@ -38,7 +41,22 @@ public partial class MainWindow : Window
 
         trayMenu = new Forms.ContextMenuStrip();
         trayMenu.Items.Add("Open OpenPanel", null, OnTrayOpen);
+
+        var appearanceMenu = new Forms.ToolStripMenuItem("Appearance");
+        currentAppearanceMenuItem = new Forms.ToolStripMenuItem(
+            "Current",
+            null,
+            OnCurrentAppearance);
+        mediaOledAppearanceMenuItem = new Forms.ToolStripMenuItem(
+            "Media OLED",
+            null,
+            OnMediaOledAppearance);
+        appearanceMenu.DropDownItems.Add(currentAppearanceMenuItem);
+        appearanceMenu.DropDownItems.Add(mediaOledAppearanceMenuItem);
+        trayMenu.Items.Add(appearanceMenu);
+        trayMenu.Items.Add(new Forms.ToolStripSeparator());
         trayMenu.Items.Add("Exit OpenPanel", null, OnTrayExit);
+        UpdateAppearanceMenu();
 
         trayIconImage = CreateTrayIcon();
         trayIcon = new Forms.NotifyIcon
@@ -124,6 +142,42 @@ public partial class MainWindow : Window
     private void OnTrayExit(object? sender, EventArgs e)
     {
         Dispatcher.BeginInvoke(() => System.Windows.Application.Current.Shutdown());
+    }
+
+    private async void OnCurrentAppearance(object? sender, EventArgs e)
+    {
+        await SetAppearanceAsync(SettingsService.CurrentAppearance);
+    }
+
+    private async void OnMediaOledAppearance(object? sender, EventArgs e)
+    {
+        await SetAppearanceAsync(SettingsService.MediaOledAppearance);
+    }
+
+    private async Task SetAppearanceAsync(string appearance)
+    {
+        try
+        {
+            await settingsService.SetAppearanceAsync(
+                appearance,
+                telemetryCancellation.Token);
+            UpdateAppearanceMenu();
+            AppLog.Write("appearance.changed", appearance);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            AppLog.Write(
+                "appearance.failed",
+                $"{ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    private void UpdateAppearanceMenu()
+    {
+        currentAppearanceMenuItem.Checked =
+            settingsService.Appearance == SettingsService.CurrentAppearance;
+        mediaOledAppearanceMenuItem.Checked =
+            settingsService.Appearance == SettingsService.MediaOledAppearance;
     }
 
     private static System.Drawing.Icon CreateTrayIcon()
@@ -376,7 +430,12 @@ public partial class MainWindow : Window
             return;
         }
 
-        var state = stateProvider.CreateState(telemetry, media, audio, selectedDisplay);
+        var state = stateProvider.CreateState(
+            telemetry,
+            media,
+            audio,
+            settingsService.Appearance,
+            selectedDisplay);
         var message = new HostToUiMessage("state:update", state);
         var json = JsonSerializer.Serialize(message, MessageJson.Options);
         coreWebView.PostWebMessageAsJson(json);

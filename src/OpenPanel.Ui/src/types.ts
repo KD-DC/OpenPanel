@@ -24,6 +24,7 @@ export interface DashboardState {
   storage: StorageSummary;
   media: MediaSummary;
   audio: AudioSummary;
+  appearance: AppearanceSummary;
   display: DisplaySummary;
 }
 
@@ -118,6 +119,10 @@ export interface AudioOutputSummary {
   id: string;
   name: string;
   isDefault: boolean;
+}
+
+export interface AppearanceSummary {
+  theme: "current" | "mediaOled";
 }
 
 export interface DisplaySummary {

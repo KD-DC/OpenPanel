@@ -1,5 +1,6 @@
 import {
   Activity,
+  AudioLines,
   Cpu,
   createIcons,
   Database,
@@ -7,11 +8,19 @@ import {
   Fan,
   Gauge,
   HardDrive,
+  Headphones,
   MemoryStick,
   Microchip,
+  MonitorSpeaker,
+  Pause,
+  Play,
   Shuffle,
+  SkipBack,
+  SkipForward,
   Thermometer,
   Upload,
+  Volume2,
+  VolumeX,
   Zap
 } from "lucide";
 import { postCommand } from "./bridge";
@@ -19,6 +28,12 @@ import { renderAudioOutputWidget } from "./widgets/audio-output/audioOutputWidge
 import { renderGpuWidget } from "./widgets/gpu/gpuWidget";
 import { renderMediaWidget } from "./widgets/media/mediaWidget";
 import { renderSystemWidget } from "./widgets/system/systemWidget";
+import {
+  renderOledAudioWidget,
+  renderOledGpuWidget,
+  renderOledMediaWidget,
+  renderOledSystemWidget
+} from "./widgets/oled/mediaOledWidgets";
 import {
   renderCpuPowerWidget,
   renderGpuPowerWidget,
@@ -29,10 +44,19 @@ import {
 import type { DashboardState } from "./types";
 
 export function renderDashboard(root: HTMLElement, state: DashboardState): void {
+  const appearance = state.appearance.theme;
+  if (root.dataset.appearance !== appearance) {
+    root.replaceChildren();
+    root.dataset.appearance = appearance;
+  }
+
   if (!root.querySelector(".dashboard-pager")) {
+    const firstPageClass = appearance === "mediaOled"
+      ? "dashboard-page--oled"
+      : "";
     root.innerHTML = `
       <main class="dashboard-pager" aria-label="OpenPanel dashboard pages" tabindex="0">
-        <div class="dashboard dashboard-page" data-page="0">
+        <div class="dashboard dashboard-page ${firstPageClass}" data-page="0">
           <div class="widget-slot" data-widget="system"></div>
           <div class="widget-slot" data-widget="gpu"></div>
           <div class="widget-slot" data-widget="media"></div>
@@ -57,10 +81,33 @@ export function renderDashboard(root: HTMLElement, state: DashboardState): void 
   root.style.setProperty("--display-width", `${state.display.width}px`);
   root.style.setProperty("--display-height", `${state.display.height}px`);
 
-  updateWidget(root, "system", renderSystemWidget(state.telemetry));
-  updateWidget(root, "gpu", renderGpuWidget(state.gpu));
-  updateWidget(root, "media", renderMediaWidget(state.media));
-  updateWidget(root, "audio", renderAudioOutputWidget(state.audio));
+  const isMediaOled = appearance === "mediaOled";
+  updateWidget(
+    root,
+    "system",
+    isMediaOled
+      ? renderOledSystemWidget(state.telemetry)
+      : renderSystemWidget(state.telemetry)
+  );
+  updateWidget(
+    root,
+    "gpu",
+    isMediaOled ? renderOledGpuWidget(state.gpu) : renderGpuWidget(state.gpu)
+  );
+  updateWidget(
+    root,
+    "media",
+    isMediaOled
+      ? renderOledMediaWidget(state.media)
+      : renderMediaWidget(state.media)
+  );
+  updateWidget(
+    root,
+    "audio",
+    isMediaOled
+      ? renderOledAudioWidget(state.audio)
+      : renderAudioOutputWidget(state.audio)
+  );
   updateWidget(root, "memory", renderMemoryWidget(state.advanced));
   updateWidget(root, "cpu-power", renderCpuPowerWidget(state.advanced, state.telemetry));
   updateWidget(root, "gpu-power", renderGpuPowerWidget(state.advanced));
@@ -70,17 +117,26 @@ export function renderDashboard(root: HTMLElement, state: DashboardState): void 
   createIcons({
     icons: {
       Activity,
+      AudioLines,
       Cpu,
       Database,
       Download,
       Fan,
       Gauge,
       HardDrive,
+      Headphones,
       MemoryStick,
       Microchip,
+      MonitorSpeaker,
+      Pause,
+      Play,
       Shuffle,
+      SkipBack,
+      SkipForward,
       Thermometer,
       Upload,
+      Volume2,
+      VolumeX,
       Zap
     },
     attrs: {
@@ -230,7 +286,10 @@ function bindCommands(root: HTMLElement): void {
     const command = target.closest<HTMLElement>("[data-command]")?.dataset.command;
     switch (command) {
       case "audio-mute": {
-        const isMuted = target.closest("[data-command]")?.textContent === "Unmute";
+        const button = target.closest<HTMLButtonElement>("[data-command]");
+        const isMuted =
+          button?.getAttribute("aria-pressed") === "true" ||
+          button?.textContent === "Unmute";
         postCommand({ type: "command:audio.mute", payload: { isMuted: !isMuted } });
         break;
       }

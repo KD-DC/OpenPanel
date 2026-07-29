@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920">
+  <title>OpenPanel - OLED Focus</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    :root {
+      --bg: #000;
+      --line: #222;
+      --muted: #7c8387;
+      --white: #f5f7f8;
+      --green: #8bf0b0;
+      --blue: #78b8ff;
+      --orange: #ffb56b;
+      --red: #ff7168;
+    }
+    .screen {
+      display: grid;
+      grid-template-columns: 346px 346px 700px 1fr;
+      gap: 0;
+      background: var(--bg);
+    }
+    .zone {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      border-right: 1px solid var(--line);
+      padding: 28px;
+      background: #000;
+    }
+    .zone:last-child { border-right: 0; }
+    .zone-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .zone-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-weight: 680;
+    }
+    .primary {
+      margin-top: 54px;
+      font-size: 92px;
+      font-weight: 430;
+      line-height: .82;
+    }
+    .primary sup {
+      color: var(--muted);
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .primary-label {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .line-meter {
+      position: relative;
+      height: 2px;
+      margin-top: 30px;
+      background: #272727;
+    }
+    .line-meter span {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: var(--value);
+      background: var(--accent);
+      box-shadow: 0 0 12px color-mix(in srgb, var(--accent), transparent 45%);
+    }
+    .allocation {
+      margin-top: 58px;
+    }
+    .allocation-head {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .allocation-head strong {
+      color: var(--white);
+      font-weight: 550;
+    }
+    .metrics {
+      display: flex;
+      justify-content: space-between;
+      margin-top: auto;
+    }
+    .metrics span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .metrics strong {
+      display: block;
+      margin-top: 7px;
+      color: var(--white);
+      font-size: 17px;
+      font-weight: 560;
+    }
+    .media-zone {
+      display: grid;
+      grid-template-columns: 230px minmax(0,1fr);
+      align-items: center;
+      gap: 28px;
+    }
+    .media-zone .album-art {
+      width: 230px;
+      height: 230px;
+      filter: saturate(.9) contrast(1.08);
+    }
+    .media-copy { min-width: 0; }
+    .media-copy .zone-title {
+      color: var(--red);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    .media-copy h1 {
+      margin: 24px 0 8px;
+      overflow: hidden;
+      font-size: 44px;
+      font-weight: 560;
+      line-height: 1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .media-copy p {
+      margin: 0;
+      color: #afb5b8;
+      font-size: 18px;
+    }
+    .media-copy .album {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .track {
+      margin-top: 40px;
+    }
+    .time {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-top: 25px;
+    }
+    .controls button {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      place-items: center;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #aeb4b6;
+    }
+    .controls .play {
+      width: 54px;
+      height: 54px;
+      background: var(--white);
+      color: #000;
+    }
+    .controls .active { color: var(--green); }
+    .audio-zone { padding-inline: 28px; }
+    .audio-volume {
+      margin-top: 30px;
+      font-size: 58px;
+      font-weight: 460;
+    }
+    .audio-volume span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .device-list {
+      display: grid;
+      gap: 0;
+      margin-top: 30px;
+    }
+    .device {
+      display: grid;
+      min-height: 67px;
+      grid-template-columns: 34px minmax(0,1fr) 8px;
+      align-items: center;
+      gap: 10px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .device:last-child { border-bottom: 1px solid var(--line); }
+    .device.active { color: var(--white); }
+    .device.active svg { color: var(--orange); }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: transparent;
+    }
+    .device.active .status-dot {
+      background: var(--orange);
+      box-shadow: 0 0 10px var(--orange);
+    }
+    .audio-bottom {
+      display: grid;
+      grid-template-columns: 46px 1fr;
+      align-items: center;
+      gap: 15px;
+      margin-top: auto;
+    }
+    .audio-bottom button {
+      width: 46px;
+      height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: transparent;
+      color: var(--white);
+    }
+  </style>
+</head>
+<body>
+  <main class="screen">
+    <section class="zone" style="--accent:var(--green)">
+      <header class="zone-head"><span class="zone-title"><i data-lucide="cpu"></i>System</span><span>01</span></header>
+      <div class="primary">34<sup>%</sup></div>
+      <div class="primary-label">CPU load</div>
+      <div class="line-meter" style="--value:34%"><span></span></div>
+      <div class="allocation"><div class="allocation-head"><span>RAM</span><strong>21.4 / 64 GB</strong></div><div class="line-meter" style="--value:33%;margin-top:12px"><span></span></div></div>
+      <div class="metrics"><span>Temperature<strong>48 C</strong></span><span>Download<strong>82.5 Mbps</strong></span></div>
+    </section>
+    <section class="zone" style="--accent:var(--blue)">
+      <header class="zone-head"><span class="zone-title"><i data-lucide="microchip"></i>Graphics</span><span>02</span></header>
+      <div class="primary">67<sup>%</sup></div>
+      <div class="primary-label">GPU load</div>
+      <div class="line-meter" style="--value:67%"><span></span></div>
+      <div class="allocation"><div class="allocation-head"><span>VRAM</span><strong>8.7 / 16 GB</strong></div><div class="line-meter" style="--value:54%;margin-top:12px"><span></span></div></div>
+      <div class="metrics"><span>Temperature<strong>61 C</strong></span><span>Power<strong>218 W</strong></span><span>Fans<strong>1480</strong></span></div>
+    </section>
+    <section class="zone media-zone">
+      <img class="album-art" src="assets/fictional-album.png" alt="">
+      <div class="media-copy">
+        <span class="zone-title"><i data-lucide="audio-lines"></i>Spotify playing</span>
+        <h1>Lazy Eye</h1>
+        <p>Silversun Pickups</p>
+        <p class="album">Carnavas</p>
+        <div class="track"><div class="line-meter" style="--value:63%;margin-top:0"><span style="background:var(--red)"></span></div><div class="time"><span>3:42</span><span>5:54</span></div></div>
+        <div class="controls">
+          <button aria-label="Previous"><i data-lucide="skip-back"></i></button>
+          <button class="play" aria-label="Pause"><i data-lucide="pause"></i></button>
+          <button aria-label="Next"><i data-lucide="skip-forward"></i></button>
+          <button class="active" aria-label="Shuffle"><i data-lucide="shuffle"></i></button>
+        </div>
+      </div>
+    </section>
+    <section class="zone audio-zone">
+      <header class="zone-head"><span class="zone-title"><i data-lucide="audio-lines"></i>Audio output</span><span>04</span></header>
+      <div class="audio-volume">42<span>% master</span></div>
+      <div class="device-list">
+        <div class="device"><i data-lucide="monitor-speaker"></i><span class="truncate">LG UltraGear+</span><span class="status-dot"></span></div>
+        <div class="device active"><i data-lucide="monitor-speaker"></i><span class="truncate">3 - ASUS PA147</span><span class="status-dot"></span></div>
+        <div class="device"><i data-lucide="headphones"></i><span class="truncate">Bose QC Ultra</span><span class="status-dot"></span></div>
+      </div>
+      <div class="audio-bottom"><button aria-label="Mute"><i data-lucide="volume-2"></i></button><div class="line-meter" style="--value:42%;margin:0"><span style="background:var(--orange)"></span></div></div>
+    </section>
+  </main>
+  <script src="../../src/OpenPanel.Ui/node_modules/lucide/dist/umd/lucide.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

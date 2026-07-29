@@ -1,0 +1,86 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #050607;
+  color: #f4f7f8;
+}
+
+body {
+  width: 1920px;
+  height: 550px;
+  user-select: none;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+  cursor: default;
+}
+
+svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+
+.screen {
+  width: 1920px;
+  height: 550px;
+  overflow: hidden;
+}
+
+.bar {
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.bar > span {
+  display: block;
+  height: 100%;
+}
+
+.album-art {
+  display: block;
+  object-fit: cover;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  min-width: 46px;
+  min-height: 46px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

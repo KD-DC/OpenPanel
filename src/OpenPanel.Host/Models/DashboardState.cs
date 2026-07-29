@@ -7,6 +7,7 @@ public sealed record DashboardState(
     StorageSummary Storage,
     MediaSummary Media,
     AudioSummary Audio,
+    AppearanceSummary Appearance,
     DisplaySummary Display);
 
 public sealed record HardwareTelemetrySnapshot(
@@ -98,6 +99,8 @@ public sealed record AudioOutputSummary(
     string Id,
     string Name,
     bool IsDefault);
+
+public sealed record AppearanceSummary(string Theme);
 
 public sealed record DisplaySummary(
     string Name,

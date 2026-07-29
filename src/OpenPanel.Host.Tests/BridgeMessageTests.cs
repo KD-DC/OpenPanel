@@ -63,6 +63,7 @@ public sealed class BridgeMessageTests
             telemetry,
             media,
             audio,
+            SettingsService.MediaOledAppearance,
             display);
         var message = new HostToUiMessage("state:update", payload);
 
@@ -84,6 +85,7 @@ public sealed class BridgeMessageTests
         StringAssert.Contains(json, "\"isShuffleActive\":true");
         StringAssert.Contains(json, "\"repeatMode\":\"List\"");
         StringAssert.Contains(json, "\"canShuffle\":true");
+        StringAssert.Contains(json, "\"appearance\":{\"theme\":\"mediaOled\"}");
         StringAssert.Contains(json, "\"currentOutput\":\"Desk Speakers\"");
         StringAssert.Contains(json, "\"peakLevelPercent\":12");
     }

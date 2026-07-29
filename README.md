@@ -15,6 +15,7 @@ OpenPanel currently includes a native WPF host, a WebView2 dashboard surface, a 
 - Updates CPU, GPU, RAM, network, clock, power, fan, thermal, and storage values from the host when supported.
 - Shows the preferred active Windows media session with artwork, timeline, and supported playback controls.
 - Enumerates active Windows playback endpoints and controls the default output, volume, mute, and peak level.
+- Defaults to the Media OLED first-page appearance, with the previous layout available from the tray Appearance menu during evaluation.
 
 ## Requirements
 
@@ -42,6 +43,8 @@ Development:
 - MSTest packages for the initial .NET test project.
 
 No graphing dependency has been added. See `NOTICE.md` for direct and transitive dependency details.
+
+See [`docs/appearance.md`](docs/appearance.md) for the temporary appearance selector and persistence behavior.
 
 ## Quick Start
 

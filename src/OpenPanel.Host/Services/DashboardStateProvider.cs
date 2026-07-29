@@ -8,6 +8,7 @@ public sealed class DashboardStateProvider
         HardwareTelemetrySnapshot telemetry,
         MediaSummary media,
         AudioSummary audio,
+        string appearance,
         DisplaySummary display)
     {
         return new DashboardState(
@@ -17,6 +18,7 @@ public sealed class DashboardStateProvider
             telemetry.Storage,
             media,
             audio,
+            new AppearanceSummary(appearance),
             display);
     }
 }

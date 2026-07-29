@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenPanel UI Directions</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #090b0d;
+      color: #f4f7f8;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      min-height: 72px;
+      border-bottom: 1px solid #262b30;
+      padding: 12px 24px;
+      background: #111417;
+    }
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 680;
+    }
+    .directions {
+      display: flex;
+      gap: 6px;
+    }
+    button,
+    a {
+      min-height: 42px;
+      border: 1px solid #343a40;
+      border-radius: 6px;
+      padding: 0 14px;
+      background: #171b1f;
+      color: #dfe5e8;
+      font: inherit;
+      text-decoration: none;
+    }
+    button.is-active {
+      border-color: #55e0c4;
+      background: #17302b;
+      color: #78f2d8;
+    }
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .frame-wrap {
+      display: grid;
+      min-height: calc(100vh - 72px);
+      place-items: center;
+      overflow: auto;
+      padding: 28px;
+    }
+    .frame-stage {
+      position: relative;
+      width: min(100%, 1920px);
+      aspect-ratio: 1920 / 550;
+      overflow: hidden;
+      border: 1px solid #30363c;
+      background: #050607;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.38);
+    }
+    iframe {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 550px;
+      border: 0;
+      transform: scale(var(--scale, 1));
+      transform-origin: top left;
+    }
+    @media (max-width: 1180px) {
+      header { align-items: flex-start; flex-direction: column; }
+      .directions { flex-wrap: wrap; }
+      .frame-wrap { min-height: calc(100vh - 130px); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>OpenPanel UI directions</h1>
+    </div>
+    <nav class="directions" aria-label="Design directions">
+      <button class="is-active" data-file="01-precision-grid.html">01 Precision</button>
+      <button data-file="02-spectral-glass.html">02 Spectral</button>
+      <button data-file="03-media-stage.html">03 Media stage</button>
+      <button data-file="04-command-rail.html">04 Command rail</button>
+      <button data-file="05-oled-focus.html">05 OLED focus</button>
+      <button data-file="06-media-stage-oled.html">06 Media OLED</button>
+    </nav>
+    <div class="actions">
+      <a id="open-direct" href="01-precision-grid.html" target="_blank">Open full size</a>
+    </div>
+  </header>
+  <main class="frame-wrap">
+    <div class="frame-stage" id="stage">
+      <iframe id="preview" src="01-precision-grid.html" title="OpenPanel design preview"></iframe>
+    </div>
+  </main>
+  <script>
+    const preview = document.querySelector("#preview");
+    const stage = document.querySelector("#stage");
+    const direct = document.querySelector("#open-direct");
+    const buttons = [...document.querySelectorAll("[data-file]")];
+
+    function fitPreview() {
+      preview.style.setProperty("--scale", stage.clientWidth / 1920);
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const file = button.dataset.file;
+        preview.src = file;
+        direct.href = file;
+        buttons.forEach((item) => item.classList.toggle("is-active", item === button));
+      });
+    });
+
+    new ResizeObserver(fitPreview).observe(stage);
+    fitPreview();
+  </script>
+</body>
+</html>

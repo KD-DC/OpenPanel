@@ -71,6 +71,9 @@ export const initialState: DashboardState = {
     setCommunicationsDevice: true,
     outputs: []
   },
+  appearance: {
+    theme: "mediaOled"
+  },
   display: {
     name: "Unknown",
     left: 0,
