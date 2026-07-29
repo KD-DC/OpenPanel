@@ -161,3 +161,38 @@ meter {
   border-color: var(--accent);
   background: rgba(46, 211, 198, 0.18);
 }
+
+.widget-advanced {
+  justify-content: space-between;
+}
+
+.widget-advanced .widget__header strong {
+  font-size: 42px;
+}
+
+.thermal-stack span {
+  color: var(--text-secondary);
+}
+
+.thermal-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.thermal-stack div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-block-end: 1px solid var(--panel-border);
+  padding: 16px 4px;
+}
+
+.thermal-stack strong {
+  font-size: 32px;
+}
+
+.sensor-availability {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}

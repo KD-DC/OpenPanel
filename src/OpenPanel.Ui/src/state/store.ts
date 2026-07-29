@@ -13,7 +13,26 @@ export const initialState: DashboardState = {
     gpuUsagePercent: 0,
     gpuTemperatureCelsius: null,
     vramUsedGb: 0,
-    vramTotalGb: 0
+    vramTotalGb: 0,
+    gpuPowerWatts: null,
+    gpuFanRpm: null
+  },
+  advanced: {
+    memory: {
+      usedGb: 0,
+      availableGb: 0,
+      totalGb: 0,
+      loadPercent: 0,
+      virtualUsedGb: 0,
+      virtualTotalGb: 0
+    },
+    cpuAverageClockMhz: null,
+    cpuPackagePowerWatts: null,
+    gpuCoreClockMhz: null,
+    gpuMemoryClockMhz: null,
+    gpuFanPercent: null,
+    gpuHotSpotTemperatureCelsius: null,
+    gpuMemoryTemperatureCelsius: null
   },
   media: {
     source: "No session",

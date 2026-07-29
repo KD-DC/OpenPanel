@@ -14,10 +14,14 @@ export function renderGpuWidget(state: GpuSummary): string {
       <div class="metric-grid">
         <span>Temp <strong>${state.gpuTemperatureCelsius === null ? "--" : `${Math.round(state.gpuTemperatureCelsius)} C`}</strong></span>
         <span>VRAM <strong>${state.vramUsedGb.toFixed(1)} / ${state.vramTotalGb.toFixed(0)} GB</strong></span>
-        <span>Power <strong>--</strong></span>
-        <span>Fans <strong>--</strong></span>
+        <span>Power <strong>${formatReading(state.gpuPowerWatts, "W")}</strong></span>
+        <span>Fans <strong>${formatReading(state.gpuFanRpm, "RPM")}</strong></span>
       </div>
       <div class="sparkline" aria-hidden="true"></div>
     </section>
   `;
+}
+
+function formatReading(value: number | null, unit: string): string {
+  return value === null ? "--" : `${Math.round(value)} ${unit}`;
 }

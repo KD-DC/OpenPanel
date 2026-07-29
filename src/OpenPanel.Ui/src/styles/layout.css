@@ -13,6 +13,10 @@ body,
   color: var(--text-primary);
 }
 
+#app {
+  position: relative;
+}
+
 button {
   min-block-size: var(--touch-target);
   border: 1px solid var(--panel-border);
@@ -27,14 +31,80 @@ button:active {
   transform: translateY(1px);
 }
 
+.dashboard-pager {
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  block-size: var(--display-height, 550px);
+  inline-size: var(--display-width, 1920px);
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  touch-action: pan-x;
+  user-select: none;
+  cursor: grab;
+}
+
+.dashboard-pager.is-dragging {
+  scroll-behavior: auto;
+  cursor: grabbing;
+}
+
+.dashboard-pager::-webkit-scrollbar {
+  display: none;
+}
+
 .dashboard {
+  flex: 0 0 var(--display-width, 1920px);
   display: grid;
   grid-template-columns: 1fr 1fr 1.25fr 1.15fr;
   gap: 14px;
-  block-size: 550px;
-  inline-size: 1920px;
+  block-size: var(--display-height, 550px);
+  inline-size: var(--display-width, 1920px);
   padding: 14px;
   background:
     linear-gradient(90deg, rgba(46, 211, 198, 0.08), transparent 34%),
     var(--panel-bg);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.dashboard-page--advanced {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background:
+    linear-gradient(90deg, rgba(240, 184, 79, 0.07), transparent 38%),
+    var(--panel-bg);
+}
+
+.widget-slot {
+  min-inline-size: 0;
+}
+
+.widget-slot > .widget {
+  block-size: 100%;
+}
+
+.page-indicator {
+  position: absolute;
+  z-index: 2;
+  inset-block-end: 6px;
+  inset-inline-start: 50%;
+  display: flex;
+  gap: 12px;
+  transform: translateX(-50%);
+}
+
+.page-indicator__dot {
+  min-block-size: 12px;
+  min-inline-size: 12px;
+  block-size: 12px;
+  inline-size: 12px;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  background: #637180;
+}
+
+.page-indicator__dot.is-active {
+  background: var(--accent);
 }

@@ -11,6 +11,7 @@ public sealed class DashboardStateProvider
         return new DashboardState(
             telemetry.Telemetry,
             telemetry.Gpu,
+            telemetry.Advanced,
             new MediaSummary(
                 Source: "Not connected",
                 Title: "Media controls are not implemented",

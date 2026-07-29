@@ -10,8 +10,8 @@ OpenPanel currently includes a native WPF host, a WebView2 dashboard surface, a 
 
 - Launches as a Windows desktop app.
 - Opens a borderless 1920 x 550 dashboard window, preferring a connected display with that resolution.
-- Renders four widgets: System, GPU, Media, and Audio Output.
-- Updates CPU, GPU, RAM, and network values from the host once per second.
+- Renders a swipeable two-page dashboard with eight widgets.
+- Updates CPU, GPU, RAM, network, clock, power, fan, and thermal values from the host once per second when supported.
 - Keeps media and audio controls as clearly labeled placeholders.
 
 ## Requirements
@@ -27,7 +27,7 @@ This repo is intended to be developed from native Windows tooling in `C:\dev\ope
 
 Runtime:
 
-- `LibreHardwareMonitorLib` for read-only CPU and GPU sensor access.
+- `LibreHardwareMonitorLib` for read-only CPU, GPU, and memory sensor access.
 - `Microsoft.Web.WebView2` for the embedded dashboard surface.
 
 Development:
@@ -71,7 +71,7 @@ src/OpenPanel.Ui/     TypeScript dashboard UI
 
 ## Known Limitations
 
-- CPU/GPU temperature and VRAM availability depend on the installed hardware, drivers, and Windows access permissions.
+- Individual clock, power, fan, temperature, and VRAM sensors depend on the installed hardware, drivers, and Windows access permissions.
 - Media and audio data are placeholders.
 - The display chooser is automatic only: it prefers a 1920 x 550 screen, then falls back to the primary display.
 - WebView2 and Node/npm must be installed separately.

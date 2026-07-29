@@ -11,6 +11,7 @@ export interface UiToHostMessage<TPayload = unknown> {
 export interface DashboardState {
   telemetry: TelemetrySummary;
   gpu: GpuSummary;
+  advanced: AdvancedTelemetrySummary;
   media: MediaSummary;
   audio: AudioSummary;
   display: DisplaySummary;
@@ -30,6 +31,28 @@ export interface GpuSummary {
   gpuTemperatureCelsius: number | null;
   vramUsedGb: number;
   vramTotalGb: number;
+  gpuPowerWatts: number | null;
+  gpuFanRpm: number | null;
+}
+
+export interface AdvancedTelemetrySummary {
+  memory: MemorySummary;
+  cpuAverageClockMhz: number | null;
+  cpuPackagePowerWatts: number | null;
+  gpuCoreClockMhz: number | null;
+  gpuMemoryClockMhz: number | null;
+  gpuFanPercent: number | null;
+  gpuHotSpotTemperatureCelsius: number | null;
+  gpuMemoryTemperatureCelsius: number | null;
+}
+
+export interface MemorySummary {
+  usedGb: number;
+  availableGb: number;
+  totalGb: number;
+  loadPercent: number;
+  virtualUsedGb: number;
+  virtualTotalGb: number;
 }
 
 export interface MediaSummary {

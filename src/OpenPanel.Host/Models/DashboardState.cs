@@ -3,13 +3,15 @@ namespace OpenPanel.Host.Models;
 public sealed record DashboardState(
     TelemetrySummary Telemetry,
     GpuSummary Gpu,
+    AdvancedTelemetrySummary Advanced,
     MediaSummary Media,
     AudioSummary Audio,
     DisplaySummary Display);
 
 public sealed record HardwareTelemetrySnapshot(
     TelemetrySummary Telemetry,
-    GpuSummary Gpu);
+    GpuSummary Gpu,
+    AdvancedTelemetrySummary Advanced);
 
 public sealed record TelemetrySummary(
     double CpuUsagePercent,
@@ -23,7 +25,27 @@ public sealed record GpuSummary(
     double GpuUsagePercent,
     double? GpuTemperatureCelsius,
     double VramUsedGb,
-    double VramTotalGb);
+    double VramTotalGb,
+    double? GpuPowerWatts,
+    double? GpuFanRpm);
+
+public sealed record AdvancedTelemetrySummary(
+    MemorySummary Memory,
+    double? CpuAverageClockMhz,
+    double? CpuPackagePowerWatts,
+    double? GpuCoreClockMhz,
+    double? GpuMemoryClockMhz,
+    double? GpuFanPercent,
+    double? GpuHotSpotTemperatureCelsius,
+    double? GpuMemoryTemperatureCelsius);
+
+public sealed record MemorySummary(
+    double UsedGb,
+    double AvailableGb,
+    double TotalGb,
+    double LoadPercent,
+    double VirtualUsedGb,
+    double VirtualTotalGb);
 
 public sealed record MediaSummary(
     string Source,

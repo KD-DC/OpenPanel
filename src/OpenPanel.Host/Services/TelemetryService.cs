@@ -63,7 +63,8 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
                     MemoryTotalGb: memory.TotalGb,
                     NetworkUploadMbps: network.UploadMbps,
                     NetworkDownloadMbps: network.DownloadMbps),
-                TelemetrySensorSelector.SelectGpu(sensorReadings));
+                TelemetrySensorSelector.SelectGpu(sensorReadings),
+                TelemetrySensorSelector.SelectAdvanced(sensorReadings, memory));
         }
     }
 
@@ -77,7 +78,8 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
         var candidate = new Computer
         {
             IsCpuEnabled = true,
-            IsGpuEnabled = true
+            IsGpuEnabled = true,
+            IsMemoryEnabled = true
         };
 
         try
@@ -132,6 +134,7 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
 
         if (hardware.HardwareType is
             HardwareType.Cpu or
+            HardwareType.Memory or
             HardwareType.GpuNvidia or
             HardwareType.GpuAmd or
             HardwareType.GpuIntel)
@@ -158,7 +161,7 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
         }
     }
 
-    private static MemoryStatus ReadMemoryStatus()
+    private static MemorySummary ReadMemoryStatus()
     {
         var status = new MemoryStatusEx
         {
@@ -172,8 +175,17 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
 
         const double bytesPerGigabyte = 1024d * 1024d * 1024d;
         var total = status.TotalPhysical / bytesPerGigabyte;
-        var used = (status.TotalPhysical - status.AvailablePhysical) / bytesPerGigabyte;
-        return new MemoryStatus(used, total);
+        var available = status.AvailablePhysical / bytesPerGigabyte;
+        var used = total - available;
+        var virtualTotal = status.TotalPageFile / bytesPerGigabyte;
+        var virtualUsed = (status.TotalPageFile - status.AvailablePageFile) / bytesPerGigabyte;
+        return new MemorySummary(
+            used,
+            available,
+            total,
+            status.MemoryLoad,
+            virtualUsed,
+            virtualTotal);
     }
 
     private void CloseComputer()
@@ -215,5 +227,4 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
         public ulong AvailableExtendedVirtual;
     }
 
-    private readonly record struct MemoryStatus(double UsedGb, double TotalGb);
 }
