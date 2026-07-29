@@ -26,6 +26,7 @@ public partial class MainWindow : Window
     private readonly MediaSessionService mediaSessionService = new();
     private readonly CancellationTokenSource telemetryCancellation = new();
     private readonly Forms.ContextMenuStrip trayMenu;
+    private readonly System.Drawing.Icon trayIconImage;
     private readonly Forms.NotifyIcon trayIcon;
 
     private DisplaySummary? selectedDisplay;
@@ -39,10 +40,11 @@ public partial class MainWindow : Window
         trayMenu.Items.Add("Open OpenPanel", null, OnTrayOpen);
         trayMenu.Items.Add("Exit OpenPanel", null, OnTrayExit);
 
+        trayIconImage = CreateTrayIcon();
         trayIcon = new Forms.NotifyIcon
         {
             ContextMenuStrip = trayMenu,
-            Icon = System.Drawing.SystemIcons.Application,
+            Icon = trayIconImage,
             Text = "OpenPanel",
             Visible = true
         };
@@ -92,6 +94,7 @@ public partial class MainWindow : Window
         trayIcon.Visible = false;
         trayIcon.DoubleClick -= OnTrayOpen;
         trayIcon.Dispose();
+        trayIconImage.Dispose();
         trayMenu.Dispose();
 
         if (DashboardWebView.CoreWebView2 is { } coreWebView)
@@ -121,6 +124,64 @@ public partial class MainWindow : Window
     private void OnTrayExit(object? sender, EventArgs e)
     {
         Dispatcher.BeginInvoke(() => System.Windows.Application.Current.Shutdown());
+    }
+
+    private static System.Drawing.Icon CreateTrayIcon()
+    {
+        using var bitmap = new System.Drawing.Bitmap(
+            32,
+            32,
+            System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using var graphics = System.Drawing.Graphics.FromImage(bitmap);
+        graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        graphics.Clear(System.Drawing.Color.Transparent);
+
+        using var screenFill = new System.Drawing.SolidBrush(
+            System.Drawing.Color.FromArgb(235, 5, 7, 10));
+        using var accentPen = new System.Drawing.Pen(
+            System.Drawing.Color.FromArgb(46, 211, 198),
+            2.5f)
+        {
+            StartCap = System.Drawing.Drawing2D.LineCap.Round,
+            EndCap = System.Drawing.Drawing2D.LineCap.Round,
+            LineJoin = System.Drawing.Drawing2D.LineJoin.Round
+        };
+        using var pulsePen = new System.Drawing.Pen(
+            System.Drawing.Color.White,
+            2.25f)
+        {
+            StartCap = System.Drawing.Drawing2D.LineCap.Round,
+            EndCap = System.Drawing.Drawing2D.LineCap.Round,
+            LineJoin = System.Drawing.Drawing2D.LineJoin.Round
+        };
+
+        graphics.FillRectangle(screenFill, 3, 4, 26, 19);
+        graphics.DrawRectangle(accentPen, 3.5f, 4.5f, 25, 18);
+        graphics.DrawLines(
+            pulsePen,
+            [
+                new System.Drawing.PointF(6, 14),
+                new System.Drawing.PointF(10, 14),
+                new System.Drawing.PointF(12.5f, 10),
+                new System.Drawing.PointF(15.5f, 18),
+                new System.Drawing.PointF(18.5f, 12),
+                new System.Drawing.PointF(22, 12),
+                new System.Drawing.PointF(24, 9),
+                new System.Drawing.PointF(26, 9)
+            ]);
+        graphics.DrawLine(accentPen, 16, 23, 16, 27);
+        graphics.DrawLine(accentPen, 11, 27, 21, 27);
+
+        var iconHandle = bitmap.GetHicon();
+        try
+        {
+            using var icon = System.Drawing.Icon.FromHandle(iconHandle);
+            return (System.Drawing.Icon)icon.Clone();
+        }
+        finally
+        {
+            DestroyIcon(iconHandle);
+        }
     }
 
     private DisplaySummary ApplyDashboardPlacement()
@@ -155,6 +216,10 @@ public partial class MainWindow : Window
         int width,
         int height,
         uint flags);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DestroyIcon(IntPtr iconHandle);
 
     private static string ResolveDashboardDirectory()
     {
