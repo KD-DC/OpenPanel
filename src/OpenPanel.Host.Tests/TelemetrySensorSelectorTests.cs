@@ -116,26 +116,26 @@ public sealed class TelemetrySensorSelectorTests
     }
 
     [TestMethod]
-    public void SelectMotherboardFiltersAndPrioritizesSupportedSensors()
+    public void SelectStorageGroupsDevicesAndConvertsThroughput()
     {
         TelemetrySensorReading[] readings =
         [
-            new(HardwareType.SuperIO, "lpc/nct", "System #1", SensorType.Temperature, 32),
-            new(HardwareType.EmbeddedController, "ec", "VRM", SensorType.Temperature, 48),
-            new(HardwareType.SuperIO, "lpc/nct", "CPU Fan", SensorType.Fan, 1250),
-            new(HardwareType.SuperIO, "lpc/nct", "Chassis Fan", SensorType.Fan, 0),
-            new(HardwareType.SuperIO, "lpc/nct", "+12V", SensorType.Voltage, 12.08),
-            new(HardwareType.SuperIO, "lpc/nct", "Invalid rail", SensorType.Voltage, 42),
-            new(HardwareType.Cpu, "cpu/0", "CPU Package", SensorType.Power, 90)
+            new(HardwareType.Storage, "storage/0", "Used Space", SensorType.Load, 63, "System NVMe"),
+            new(HardwareType.Storage, "storage/0", "Total Activity", SensorType.Load, 18, "System NVMe"),
+            new(HardwareType.Storage, "storage/0", "Temperature", SensorType.Temperature, 42, "System NVMe"),
+            new(HardwareType.Storage, "storage/0", "Read Rate", SensorType.Throughput, 125_000_000, "System NVMe"),
+            new(HardwareType.Storage, "storage/0", "Write Rate", SensorType.Throughput, 25_000_000, "System NVMe"),
+            new(HardwareType.Storage, "storage/1", "Used Space", SensorType.Level, 40, "Archive SSD")
         ];
 
-        var motherboard = TelemetrySensorSelector.SelectMotherboard(readings);
+        var storage = TelemetrySensorSelector.SelectStorage(readings);
 
-        Assert.AreEqual("VRM", motherboard.Temperatures[0].Name);
-        Assert.AreEqual(2, motherboard.Temperatures.Count);
-        Assert.AreEqual(2, motherboard.Fans.Count);
-        Assert.AreEqual("+12V", motherboard.Voltages[0].Name);
-        Assert.AreEqual(12.08, motherboard.Voltages[0].Value, 0.01);
-        Assert.IsEmpty(motherboard.Power);
+        Assert.HasCount(2, storage.Devices);
+        var system = storage.Devices.Single(device => device.Name == "System NVMe");
+        Assert.AreEqual(63, system.UsedPercent);
+        Assert.AreEqual(18, system.ActivityPercent);
+        Assert.AreEqual(42, system.TemperatureCelsius);
+        Assert.AreEqual(125, system.ReadMegabytesPerSecond);
+        Assert.AreEqual(25, system.WriteMegabytesPerSecond);
     }
 }

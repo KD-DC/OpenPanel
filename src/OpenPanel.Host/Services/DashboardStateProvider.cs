@@ -14,7 +14,7 @@ public sealed class DashboardStateProvider
             telemetry.Telemetry,
             telemetry.Gpu,
             telemetry.Advanced,
-            telemetry.Motherboard,
+            telemetry.Storage,
             media,
             audio,
             display);

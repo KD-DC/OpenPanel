@@ -4,14 +4,14 @@
 
 OpenPanel is a Windows-first touchscreen dashboard for ultrawide secondary displays, starting with the ASUS ProArt PA147CDV at 1920 x 550.
 
-OpenPanel currently includes a native WPF host, a WebView2 dashboard surface, a TypeScript UI, typed host/UI messaging, live system and motherboard telemetry, Windows global media controls, and global audio output controls.
+OpenPanel currently includes a native WPF host, a WebView2 dashboard surface, a TypeScript UI, typed host/UI messaging, live system and storage telemetry, Windows global media controls, and global audio output controls.
 
 ## Current Acceptance Target
 
 - Launches as a Windows desktop app.
 - Opens a borderless 1920 x 550 dashboard window, preferring a connected display with that resolution.
-- Renders a swipeable two-page dashboard with eight widgets.
-- Updates CPU, GPU, RAM, network, clock, power, fan, and thermal values from the host once per second when supported.
+- Renders a swipeable two-page dashboard with nine widgets.
+- Updates CPU, GPU, RAM, network, clock, power, fan, thermal, and storage values from the host when supported.
 - Shows the preferred active Windows media session with artwork, timeline, and supported playback controls.
 - Enumerates active Windows playback endpoints and controls the default output, volume, mute, and peak level.
 
@@ -28,9 +28,10 @@ This repo is intended to be developed from native Windows tooling in `C:\dev\ope
 
 Runtime:
 
-- `LibreHardwareMonitorLib` for read-only CPU, GPU, and memory sensor access.
+- `LibreHardwareMonitorLib` for read-only CPU, GPU, memory, and storage sensor access.
 - `Microsoft.Web.WebView2` for the embedded dashboard surface.
 - `NAudio` for maintained Core Audio endpoint, volume, mute, and peak-level wrappers.
+- `lucide` for tree-shaken, inline dashboard metric icons.
 
 Development:
 
@@ -39,7 +40,7 @@ Development:
 - `@types/node` for Vite's Node-based config types.
 - MSTest packages for the initial .NET test project.
 
-No media, audio switching, graphing, or icon dependencies have been added yet. See `NOTICE.md` for direct and transitive dependency details.
+No graphing dependency has been added. See `NOTICE.md` for direct and transitive dependency details.
 
 ## Quick Start
 

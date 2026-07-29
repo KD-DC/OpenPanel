@@ -70,16 +70,9 @@ button:active {
 }
 
 .dashboard-page--advanced {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   background:
     linear-gradient(90deg, rgba(240, 184, 79, 0.07), transparent 38%),
-    var(--panel-bg);
-}
-
-.dashboard-page--motherboard {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  background:
-    linear-gradient(90deg, rgba(84, 178, 112, 0.07), transparent 38%),
     var(--panel-bg);
 }
 

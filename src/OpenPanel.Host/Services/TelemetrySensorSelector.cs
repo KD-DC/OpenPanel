@@ -159,68 +159,46 @@ internal static class TelemetrySensorSelector
                 ["GPU Memory Junction", "GPU Memory"]));
     }
 
-    public static MotherboardSummary SelectMotherboard(
+    public static StorageSummary SelectStorage(
         IEnumerable<TelemetrySensorReading> readings)
     {
-        var motherboard = readings
-            .Where(reading => IsMotherboard(reading.HardwareType))
-            .ToArray();
-
-        return new MotherboardSummary(
-            SelectNamedSensors(
-                motherboard,
-                SensorType.Temperature,
-                value => IsValidTemperature(value),
-                ["VRM", "Chipset", "Motherboard", "CPU", "T_Sensor", "Water"]),
-            SelectNamedSensors(
-                motherboard,
-                SensorType.Fan,
-                value => value is >= 0 and < 50_000,
-                ["CPU", "AIO", "Pump", "Chassis", "Water"]),
-            SelectNamedSensors(
-                motherboard,
-                SensorType.Voltage,
-                value => value is > 0 and < 30,
-                ["12V", "5V", "3.3V", "VCore", "SOC", "DRAM"]),
-            SelectNamedSensors(
-                motherboard,
-                SensorType.Power,
-                value => value is >= 0 and < 2_000,
-                ["CPU", "VRM", "SOC", "DRAM"]));
-    }
-
-    private static IReadOnlyList<NamedSensorSummary> SelectNamedSensors(
-        IEnumerable<TelemetrySensorReading> readings,
-        SensorType sensorType,
-        Func<double, bool> isValid,
-        IReadOnlyList<string> preferredNames)
-    {
-        return readings
-            .Where(reading =>
-                reading.SensorType == sensorType &&
-                isValid(reading.Value))
-            .OrderBy(reading => SensorPriority(reading.Name, preferredNames))
-            .ThenBy(reading => reading.Name, StringComparer.OrdinalIgnoreCase)
-            .GroupBy(reading => reading.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(group => group.First())
-            .Take(5)
-            .Select(reading => new NamedSensorSummary(reading.Name, reading.Value))
-            .ToArray();
-    }
-
-    private static int SensorPriority(
-        string name,
-        IReadOnlyList<string> preferredNames)
-    {
-        for (var index = 0; index < preferredNames.Count; index++)
-        {
-            if (name.Contains(preferredNames[index], StringComparison.OrdinalIgnoreCase))
+        var devices = readings
+            .Where(reading => reading.HardwareType == HardwareType.Storage)
+            .GroupBy(reading => reading.HardwareId)
+            .Select(group =>
             {
-                return index;
-            }
-        }
+                var deviceReadings = group.ToArray();
+                var usedPercent =
+                    FindExactByType(deviceReadings, "Used Space", SensorType.Load) ??
+                    FindExactByType(deviceReadings, "Used Space", SensorType.Level);
+                var activityPercent =
+                    FindExactByType(deviceReadings, "Total Activity", SensorType.Load);
+                var temperature = FindPreferred(
+                    deviceReadings.Where(reading =>
+                        reading.SensorType == SensorType.Temperature &&
+                        IsValidTemperature(reading.Value)),
+                    ["Temperature", "Drive Temperature", "Composite Temperature"]);
+                var readRate = FindExactByType(
+                    deviceReadings,
+                    "Read Rate",
+                    SensorType.Throughput);
+                var writeRate = FindExactByType(
+                    deviceReadings,
+                    "Write Rate",
+                    SensorType.Throughput);
 
-        return preferredNames.Count;
+                return new StorageDeviceSummary(
+                    deviceReadings[0].HardwareName,
+                    usedPercent.HasValue ? ClampPercent(usedPercent.Value) : null,
+                    activityPercent.HasValue ? ClampPercent(activityPercent.Value) : null,
+                    temperature,
+                    BytesPerSecondToMegabytesPerSecond(readRate),
+                    BytesPerSecondToMegabytesPerSecond(writeRate));
+            })
+            .OrderBy(device => device.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return new StorageSummary(devices);
     }
 
     private static MemorySummary SelectMemory(
@@ -356,12 +334,9 @@ internal static class TelemetrySensorSelector
         return value is > 0 and < 150;
     }
 
-    private static bool IsMotherboard(HardwareType hardwareType)
+    private static double? BytesPerSecondToMegabytesPerSecond(double? value)
     {
-        return hardwareType is
-            HardwareType.Motherboard or
-            HardwareType.SuperIO or
-            HardwareType.EmbeddedController;
+        return value is >= 0 ? value / 1_000_000d : null;
     }
 
     private static double? PositiveOrNull(double? value)

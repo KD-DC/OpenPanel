@@ -1,3 +1,18 @@
+import {
+  Activity,
+  Cpu,
+  createIcons,
+  Database,
+  Download,
+  Fan,
+  Gauge,
+  HardDrive,
+  MemoryStick,
+  Microchip,
+  Thermometer,
+  Upload,
+  Zap
+} from "lucide";
 import { postCommand } from "./bridge";
 import { renderAudioOutputWidget } from "./widgets/audio-output/audioOutputWidget";
 import { renderGpuWidget } from "./widgets/gpu/gpuWidget";
@@ -7,14 +22,9 @@ import {
   renderCpuPowerWidget,
   renderGpuPowerWidget,
   renderGpuThermalsWidget,
-  renderMemoryWidget
+  renderMemoryWidget,
+  renderStorageWidget
 } from "./widgets/advanced/advancedWidgets";
-import {
-  renderMotherboardCoolingWidget,
-  renderMotherboardPowerWidget,
-  renderMotherboardThermalsWidget,
-  renderMotherboardVoltagesWidget
-} from "./widgets/motherboard/motherboardWidgets";
 import type { DashboardState } from "./types";
 
 export function renderDashboard(root: HTMLElement, state: DashboardState): void {
@@ -32,18 +42,12 @@ export function renderDashboard(root: HTMLElement, state: DashboardState): void 
           <div class="widget-slot" data-widget="cpu-power"></div>
           <div class="widget-slot" data-widget="gpu-power"></div>
           <div class="widget-slot" data-widget="gpu-thermals"></div>
-        </div>
-        <div class="dashboard dashboard-page dashboard-page--motherboard" data-page="2">
-          <div class="widget-slot" data-widget="motherboard-thermals"></div>
-          <div class="widget-slot" data-widget="motherboard-cooling"></div>
-          <div class="widget-slot" data-widget="motherboard-voltages"></div>
-          <div class="widget-slot" data-widget="motherboard-power"></div>
+          <div class="widget-slot" data-widget="storage"></div>
         </div>
       </main>
       <nav class="page-indicator" aria-label="Dashboard pages">
         <button class="page-indicator__dot is-active" type="button" data-page-target="0" aria-label="System overview" aria-current="page"></button>
         <button class="page-indicator__dot" type="button" data-page-target="1" aria-label="Power user telemetry"></button>
-        <button class="page-indicator__dot" type="button" data-page-target="2" aria-label="Motherboard telemetry"></button>
       </nav>
     `;
     bindPager(root);
@@ -60,27 +64,27 @@ export function renderDashboard(root: HTMLElement, state: DashboardState): void 
   updateWidget(root, "cpu-power", renderCpuPowerWidget(state.advanced, state.telemetry));
   updateWidget(root, "gpu-power", renderGpuPowerWidget(state.advanced));
   updateWidget(root, "gpu-thermals", renderGpuThermalsWidget(state.advanced));
-  updateWidget(
-    root,
-    "motherboard-thermals",
-    renderMotherboardThermalsWidget(state.motherboard)
-  );
-  updateWidget(
-    root,
-    "motherboard-cooling",
-    renderMotherboardCoolingWidget(state.motherboard)
-  );
-  updateWidget(
-    root,
-    "motherboard-voltages",
-    renderMotherboardVoltagesWidget(state.motherboard)
-  );
-  updateWidget(
-    root,
-    "motherboard-power",
-    renderMotherboardPowerWidget(state.motherboard)
-  );
+  updateWidget(root, "storage", renderStorageWidget(state.storage));
 
+  createIcons({
+    icons: {
+      Activity,
+      Cpu,
+      Database,
+      Download,
+      Fan,
+      Gauge,
+      HardDrive,
+      MemoryStick,
+      Microchip,
+      Thermometer,
+      Upload,
+      Zap
+    },
+    attrs: {
+      "aria-hidden": "true"
+    }
+  });
   bindCommands(root);
 }
 

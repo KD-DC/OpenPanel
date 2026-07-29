@@ -18,4 +18,4 @@ OpenPanel controls the global Windows playback output only. It does not perform 
 
 Microsoft documents endpoint enumeration, notifications, volume, mute, and metering. Windows does not expose a fully public default-endpoint setter, so `Interop/AudioPolicyConfig/AudioDefaultDeviceSwitcher.cs` contains the compatibility layer. Keep that adapter isolated and covered by manual Windows integration testing.
 
-OpenPanel writes command diagnostics and a one-time motherboard sensor inventory to `%LOCALAPPDATA%\OpenPanel\openpanel.log`. Polling loops do not write continuous log entries.
+OpenPanel writes command diagnostics and a one-time storage sensor inventory to `%LOCALAPPDATA%\OpenPanel\openpanel.log`. Polling loops do not write continuous log entries.

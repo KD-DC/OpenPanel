@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using LibreHardwareMonitor.Hardware;
 using OpenPanel.Host.Models;
@@ -14,17 +15,16 @@ public interface ITelemetryService
 public sealed class TelemetryService : ITelemetryService, IDisposable
 {
     private static readonly TimeSpan HardwareRetryInterval = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan MotherboardInterval = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan StorageInterval = TimeSpan.FromSeconds(5);
 
     private readonly object syncRoot = new();
     private readonly NetworkThroughputSampler networkSampler = new();
 
     private Computer? computer;
     private DateTimeOffset nextHardwareOpenAttempt;
-    private DateTimeOffset nextMotherboardUpdate;
-    private IReadOnlyList<TelemetrySensorReading> motherboardReadings =
-        Array.Empty<TelemetrySensorReading>();
-    private bool motherboardInventoryLogged;
+    private DateTimeOffset nextStorageUpdate;
+    private StorageSummary storageSummary = new([]);
+    private bool storageInventoryLogged;
     private bool disposed;
 
     public Task<HardwareTelemetrySnapshot> GetSnapshotAsync(CancellationToken cancellationToken)
@@ -70,7 +70,7 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
                     NetworkDownloadMbps: network.DownloadMbps),
                 TelemetrySensorSelector.SelectGpu(sensorReadings),
                 TelemetrySensorSelector.SelectAdvanced(sensorReadings, memory),
-                TelemetrySensorSelector.SelectMotherboard(sensorReadings));
+                storageSummary);
         }
     }
 
@@ -86,7 +86,7 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
             IsCpuEnabled = true,
             IsGpuEnabled = true,
             IsMemoryEnabled = true,
-            IsMotherboardEnabled = true
+            IsStorageEnabled = true
         };
 
         try
@@ -118,42 +118,32 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
         }
 
         var readings = new List<TelemetrySensorReading>();
-        foreach (var hardware in computer.Hardware)
+        if (DateTimeOffset.UtcNow >= nextStorageUpdate)
         {
-            if (hardware.HardwareType == HardwareType.Motherboard)
+            var currentStorageReadings = new List<TelemetrySensorReading>();
+            foreach (var storage in computer.Hardware.Where(
+                         hardware => hardware.HardwareType == HardwareType.Storage))
             {
-                ReadMotherboard(hardware, readings);
+                UpdateHardware(storage, currentStorageReadings);
             }
-            else
+
+            var libreStorage = TelemetrySensorSelector.SelectStorage(currentStorageReadings);
+            storageSummary = libreStorage.Devices.Count > 0
+                ? libreStorage
+                : ReadStorageVolumes();
+            nextStorageUpdate = DateTimeOffset.UtcNow + StorageInterval;
+
+            if (!storageInventoryLogged)
             {
-                UpdateHardware(hardware, readings);
-            }
-        }
-
-        return readings;
-    }
-
-    private void ReadMotherboard(
-        IHardware hardware,
-        ICollection<TelemetrySensorReading> readings)
-    {
-        if (DateTimeOffset.UtcNow >= nextMotherboardUpdate)
-        {
-            var current = new List<TelemetrySensorReading>();
-            UpdateHardware(hardware, current);
-            motherboardReadings = current;
-            nextMotherboardUpdate = DateTimeOffset.UtcNow + MotherboardInterval;
-
-            if (!motherboardInventoryLogged)
-            {
-                motherboardInventoryLogged = true;
+                storageInventoryLogged = true;
                 AppLog.Write(
-                    "motherboard.sensors",
-                    current.Count == 0
-                        ? "No supported motherboard sensors"
+                    "storage.sensors",
+                    currentStorageReadings.Count == 0
+                        ? $"No supported Libre storage sensors; " +
+                          $"{storageSummary.Devices.Count} fixed-volume fallback(s)"
                         : string.Join(
                             " | ",
-                            current
+                            currentStorageReadings
                                 .OrderBy(reading => reading.HardwareName)
                                 .ThenBy(reading => reading.SensorType)
                                 .ThenBy(reading => reading.Name)
@@ -163,10 +153,50 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
             }
         }
 
-        foreach (var reading in motherboardReadings)
+        foreach (var hardware in computer.Hardware)
         {
-            readings.Add(reading);
+            if (hardware.HardwareType != HardwareType.Storage)
+            {
+                UpdateHardware(hardware, readings);
+            }
         }
+
+        return readings;
+    }
+
+    private static StorageSummary ReadStorageVolumes()
+    {
+        var devices = new List<StorageDeviceSummary>();
+        foreach (var drive in DriveInfo.GetDrives())
+        {
+            try
+            {
+                if (drive.DriveType != DriveType.Fixed || !drive.IsReady || drive.TotalSize <= 0)
+                {
+                    continue;
+                }
+
+                var usedPercent =
+                    (drive.TotalSize - drive.TotalFreeSpace) / (double)drive.TotalSize * 100;
+                devices.Add(new StorageDeviceSummary(
+                    drive.Name.TrimEnd(Path.DirectorySeparatorChar),
+                    Math.Clamp(usedPercent, 0, 100),
+                    null,
+                    null,
+                    null,
+                    null));
+            }
+            catch (IOException)
+            {
+                // Removable or transient volumes may disappear during enumeration.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Skip volumes that are not readable by the current user.
+            }
+        }
+
+        return new StorageSummary(devices);
     }
 
     private static void UpdateHardware(
@@ -188,9 +218,7 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
             HardwareType.GpuNvidia or
             HardwareType.GpuAmd or
             HardwareType.GpuIntel or
-            HardwareType.Motherboard or
-            HardwareType.SuperIO or
-            HardwareType.EmbeddedController)
+            HardwareType.Storage)
         {
             foreach (var sensor in hardware.Sensors)
             {
@@ -260,9 +288,9 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
         finally
         {
             computer = null;
-            motherboardReadings = Array.Empty<TelemetrySensorReading>();
-            nextMotherboardUpdate = default;
-            motherboardInventoryLogged = false;
+            storageSummary = new StorageSummary([]);
+            nextStorageUpdate = default;
+            storageInventoryLogged = false;
         }
     }
 
