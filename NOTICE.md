@@ -6,6 +6,7 @@ OpenPanel original source code is licensed under the MIT License.
 
 | Dependency | Use | License |
 | --- | --- | --- |
+| LibreHardwareMonitorLib 0.9.6 | Read-only CPU and GPU sensors | MPL-2.0 |
 | Microsoft.Web.WebView2 | Embedded dashboard UI in the WPF host | Microsoft package terms |
 | Vite | TypeScript dashboard bundling during development/build | MIT |
 | TypeScript | Dashboard type checking and compilation | Apache-2.0 |
@@ -14,9 +15,21 @@ OpenPanel original source code is licensed under the MIT License.
 | MSTest.TestAdapter | Visual Studio/dotnet test adapter | MIT |
 | Microsoft.NET.Test.Sdk | .NET test SDK | MIT |
 
+LibreHardwareMonitorLib brings these transitive packages into the restored dependency graph:
+
+- `BlackSharp.Core` 1.0.7: shared toolkit code, MPL-2.0.
+- `DiskInfoToolkit` 1.1.2: disk-access support, MPL-2.0.
+- `HidSharp` 2.6.4: USB HID access, Apache-2.0.
+- `Mono.Posix.NETStandard` 1.0.0: POSIX compatibility support included by the upstream package.
+- `RAMSPDToolkit-NDD` 1.4.2: RAM SPD access, MPL-2.0.
+- `System.IO.FileSystem.AccessControl` 5.0.0: filesystem access-control APIs, MIT.
+- `System.IO.Ports` 10.0.3 and its platform runtime packs: serial-port APIs, MIT.
+- `System.Management` 10.0.2: Windows Management Instrumentation APIs, MIT.
+
+These transitive packages are upstream requirements even though OpenPanel enables only CPU and GPU hardware categories.
+
 Planned but not yet added:
 
-- LibreHardwareMonitor for hardware telemetry.
 - NAudio for Core Audio interop if it meaningfully reduces custom interop.
 - uPlot for compact live graphs.
 - Lucide icons for touch controls.

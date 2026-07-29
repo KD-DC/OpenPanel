@@ -7,6 +7,10 @@ public sealed record DashboardState(
     AudioSummary Audio,
     DisplaySummary Display);
 
+public sealed record HardwareTelemetrySnapshot(
+    TelemetrySummary Telemetry,
+    GpuSummary Gpu);
+
 public sealed record TelemetrySummary(
     double CpuUsagePercent,
     double? CpuTemperatureCelsius,
