@@ -1,5 +1,7 @@
 # OpenPanel
 
+[![CI](https://github.com/KD-DC/OpenPanel/actions/workflows/ci.yml/badge.svg)](https://github.com/KD-DC/OpenPanel/actions/workflows/ci.yml)
+
 OpenPanel is a Windows-first touchscreen dashboard for ultrawide secondary displays, starting with the ASUS ProArt PA147CDV at 1920 x 550.
 
 The first milestone establishes the app shell: a native WPF host, a WebView2 dashboard surface, a TypeScript UI, placeholder widgets, and typed host/UI messaging. Full hardware telemetry, media controls, and audio output switching are intentionally stubbed for now.
