@@ -44,11 +44,38 @@ public sealed class MediaSessionService : IMediaSessionService
         }
     }
 
-    public Task TogglePlayPauseAsync(CancellationToken cancellationToken)
+    public async Task TogglePlayPauseAsync(CancellationToken cancellationToken)
     {
-        return RunCommandAsync(
-            session => session.TryTogglePlayPauseAsync(),
-            cancellationToken);
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            var session = await SelectSessionAsync(cancellationToken);
+            if (session is null)
+            {
+                return;
+            }
+
+            var playbackStatus = session.GetPlaybackInfo().PlaybackStatus;
+            var accepted = playbackStatus ==
+                GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing
+                    ? await session.TryPauseAsync()
+                    : await session.TryPlayAsync();
+            if (!accepted)
+            {
+                accepted = await session.TryTogglePlayPauseAsync();
+            }
+            if (!accepted)
+            {
+                throw new InvalidOperationException(
+                    $"Media session '{session.SourceAppUserModelId}' rejected play/pause.");
+            }
+
+            lastSourceAppId = session.SourceAppUserModelId;
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     public Task GoPreviousAsync(CancellationToken cancellationToken)
@@ -83,7 +110,12 @@ public sealed class MediaSessionService : IMediaSessionService
             var session = await SelectSessionAsync(cancellationToken);
             if (session is not null)
             {
-                await command(session);
+                var accepted = await command(session);
+                if (!accepted)
+                {
+                    throw new InvalidOperationException(
+                        $"Media session '{session.SourceAppUserModelId}' rejected the command.");
+                }
                 lastSourceAppId = session.SourceAppUserModelId;
             }
         }
