@@ -8,6 +8,7 @@ using Microsoft.Web.WebView2.Core;
 using OpenPanel.Host.Messaging;
 using OpenPanel.Host.Models;
 using OpenPanel.Host.Services;
+using Forms = System.Windows.Forms;
 
 namespace OpenPanel.Host;
 
@@ -24,6 +25,8 @@ public partial class MainWindow : Window
     private readonly AudioDeviceService audioDeviceService = new();
     private readonly MediaSessionService mediaSessionService = new();
     private readonly CancellationTokenSource telemetryCancellation = new();
+    private readonly Forms.ContextMenuStrip trayMenu;
+    private readonly Forms.NotifyIcon trayIcon;
 
     private DisplaySummary? selectedDisplay;
     private Task? telemetryLoopTask;
@@ -31,6 +34,19 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        trayMenu = new Forms.ContextMenuStrip();
+        trayMenu.Items.Add("Open OpenPanel", null, OnTrayOpen);
+        trayMenu.Items.Add("Exit OpenPanel", null, OnTrayExit);
+
+        trayIcon = new Forms.NotifyIcon
+        {
+            ContextMenuStrip = trayMenu,
+            Icon = System.Drawing.SystemIcons.Application,
+            Text = "OpenPanel",
+            Visible = true
+        };
+        trayIcon.DoubleClick += OnTrayOpen;
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -73,6 +89,10 @@ public partial class MainWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         telemetryCancellation.Cancel();
+        trayIcon.Visible = false;
+        trayIcon.DoubleClick -= OnTrayOpen;
+        trayIcon.Dispose();
+        trayMenu.Dispose();
 
         if (DashboardWebView.CoreWebView2 is { } coreWebView)
         {
@@ -82,6 +102,25 @@ public partial class MainWindow : Window
 
         telemetryService.Dispose();
         base.OnClosed(e);
+    }
+
+    private void OnTrayOpen(object? sender, EventArgs e)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (WindowState == WindowState.Minimized)
+            {
+                WindowState = WindowState.Normal;
+            }
+
+            Show();
+            Activate();
+        });
+    }
+
+    private void OnTrayExit(object? sender, EventArgs e)
+    {
+        Dispatcher.BeginInvoke(() => System.Windows.Application.Current.Shutdown());
     }
 
     private DisplaySummary ApplyDashboardPlacement()

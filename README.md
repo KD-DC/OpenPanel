@@ -10,6 +10,7 @@ OpenPanel currently includes a native WPF host, a WebView2 dashboard surface, a 
 
 - Launches as a Windows desktop app.
 - Opens a borderless 1920 x 550 dashboard window, preferring a connected display with that resolution.
+- Runs without a taskbar button and provides Open and Exit actions from the system tray.
 - Renders a swipeable two-page dashboard with nine widgets.
 - Updates CPU, GPU, RAM, network, clock, power, fan, thermal, and storage values from the host when supported.
 - Shows the preferred active Windows media session with artwork, timeline, and supported playback controls.

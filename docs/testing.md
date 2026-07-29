@@ -19,6 +19,7 @@ This type-checks the TypeScript UI and runs .NET tests.
 - Run `.\scripts\build.ps1`.
 - Run `.\scripts\run.ps1`.
 - Confirm the OpenPanel window appears borderless on the ASUS display.
+- Confirm OpenPanel has no taskbar button, has a system tray icon, and the tray Open and Exit actions work.
 - Connect or disconnect a Bluetooth playback device and confirm the audio output list updates without restarting OpenPanel.
 - Swipe to the power-user page and confirm detected storage devices render or display the explicit unavailable state.
 - Confirm four widgets render: System, GPU, Media, Audio Output.
