@@ -39,14 +39,22 @@ export const initialState: DashboardState = {
     title: "Waiting for host",
     artist: "OpenPanel",
     album: "",
+    artworkDataUrl: null,
     isPlaying: false,
     positionSeconds: 0,
-    durationSeconds: 0
+    durationSeconds: 0,
+    canToggle: false,
+    canGoPrevious: false,
+    canGoNext: false,
+    canSeek: false
   },
   audio: {
+    currentOutputId: null,
     currentOutput: "Unavailable",
     volumePercent: 0,
     isMuted: false,
+    peakLevelPercent: 0,
+    setCommunicationsDevice: true,
     outputs: []
   },
   display: {

@@ -8,6 +8,7 @@ OpenPanel original source code is licensed under the MIT License.
 | --- | --- | --- |
 | LibreHardwareMonitorLib 0.9.6 | Read-only CPU and GPU sensors | MPL-2.0 |
 | Microsoft.Web.WebView2 | Embedded dashboard UI in the WPF host | Microsoft package terms |
+| NAudio.Wasapi 2.3.0 | Core Audio endpoint enumeration, volume, mute, and peak-level access | MIT |
 | Vite | TypeScript dashboard bundling during development/build | MIT |
 | TypeScript | Dashboard type checking and compilation | Apache-2.0 |
 | @types/node | Type definitions for Vite config | MIT |
@@ -26,11 +27,14 @@ LibreHardwareMonitorLib brings these transitive packages into the restored depen
 - `System.IO.Ports` 10.0.3 and its platform runtime packs: serial-port APIs, MIT.
 - `System.Management` 10.0.2: Windows Management Instrumentation APIs, MIT.
 
-These transitive packages are upstream requirements even though OpenPanel enables only CPU and GPU hardware categories.
+NAudio.Wasapi brings this MIT-licensed package into the restored dependency graph:
+
+- `NAudio.Core`
+
+These transitive packages are upstream requirements even though OpenPanel enables only CPU, GPU, and memory hardware categories.
 
 Planned but not yet added:
 
-- NAudio for Core Audio interop if it meaningfully reduces custom interop.
 - uPlot for compact live graphs.
 - Lucide icons for touch controls.
 

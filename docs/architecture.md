@@ -12,7 +12,9 @@ The host is a .NET 10 WPF app. It is responsible for:
 - Receiving typed commands from the dashboard UI.
 - Owning Windows-specific services.
 
-The host samples read-only CPU and GPU sensors through LibreHardwareMonitor. RAM and network rates use Windows and .NET APIs. The normalized snapshot is sent to the UI once per second. Media and audio services remain stubs.
+The host samples hardware sensors through LibreHardwareMonitor. RAM and network rates use Windows and .NET APIs. It reads global media sessions through `GlobalSystemMediaTransportControlsSessionManager` and global output state through Core Audio/NAudio. The normalized snapshot is sent to the UI once per second.
+
+Default audio output switching is isolated under `Interop/AudioPolicyConfig` because Windows exposes endpoint enumeration and volume publicly but not the default-output setter. Media artwork is cached by track identity and sent only when it changes or after a 30-second refresh.
 
 ## UI
 
@@ -37,10 +39,10 @@ Host-to-UI:
 }
 ```
 
-UI-to-host command messages use a `command:*` type and optional payload. Commands are currently logged by the host.
+UI-to-host command messages use a `command:*` type and optional payload. Implemented commands cover output selection, volume, mute, media play/pause, previous, next, and seek.
 
 ## Resource Use
 
-The UI avoids React and graphing libraries. Telemetry uses a single non-overlapping one-second loop, enables only CPU and GPU LibreHardwareMonitor categories, and performs sensor work away from the UI thread. Missing sensors are represented as null or zero rather than retried aggressively.
+The UI avoids React and graphing libraries. A single non-overlapping one-second loop collects telemetry, audio, and media state concurrently. LibreHardwareMonitor enables only CPU, GPU, and memory categories. Missing sensors or platform sessions are represented as unavailable states rather than retried aggressively.
 
 Future services should keep coarse update intervals, avoid repeated large payloads, and isolate Windows interop behind small interfaces.

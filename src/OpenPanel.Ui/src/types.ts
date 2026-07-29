@@ -4,7 +4,15 @@ export interface HostToUiMessage {
 }
 
 export interface UiToHostMessage<TPayload = unknown> {
-  type: "command:audio.select" | "command:media.toggle" | "command:system.ready";
+  type:
+    | "command:audio.select"
+    | "command:audio.volume"
+    | "command:audio.mute"
+    | "command:media.toggle"
+    | "command:media.previous"
+    | "command:media.next"
+    | "command:media.seek"
+    | "command:system.ready";
   payload?: TPayload;
 }
 
@@ -60,15 +68,23 @@ export interface MediaSummary {
   title: string;
   artist: string;
   album: string;
+  artworkDataUrl: string | null;
   isPlaying: boolean;
   positionSeconds: number;
   durationSeconds: number;
+  canToggle: boolean;
+  canGoPrevious: boolean;
+  canGoNext: boolean;
+  canSeek: boolean;
 }
 
 export interface AudioSummary {
+  currentOutputId: string | null;
   currentOutput: string;
   volumePercent: number;
   isMuted: boolean;
+  peakLevelPercent: number;
+  setCommunicationsDevice: boolean;
   outputs: AudioOutputSummary[];
 }
 

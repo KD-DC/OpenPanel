@@ -25,7 +25,32 @@ public sealed class BridgeMessageTests
                 67,
                 72));
         var display = new DisplaySummary("ASUS target", 0, 0, 1920, 550, false);
-        var payload = new DashboardStateProvider().CreateState(telemetry, display);
+        var media = new MediaSummary(
+            "Spotify",
+            "Test Track",
+            "Test Artist",
+            "Test Album",
+            null,
+            true,
+            30,
+            180,
+            true,
+            true,
+            true,
+            true);
+        var audio = new AudioSummary(
+            "device-1",
+            "Desk Speakers",
+            42,
+            false,
+            12,
+            true,
+            [new AudioOutputSummary("device-1", "Desk Speakers", true)]);
+        var payload = new DashboardStateProvider().CreateState(
+            telemetry,
+            media,
+            audio,
+            display);
         var message = new HostToUiMessage("state:update", payload);
 
         var json = JsonSerializer.Serialize(message, MessageJson.Options);
@@ -35,6 +60,24 @@ public sealed class BridgeMessageTests
         StringAssert.Contains(json, "\"gpuUsagePercent\":36");
         StringAssert.Contains(json, "\"availableGb\":42.6");
         StringAssert.Contains(json, "\"cpuPackagePowerWatts\":88");
-        StringAssert.Contains(json, "\"currentOutput\":\"Not connected\"");
+        StringAssert.Contains(json, "\"title\":\"Test Track\"");
+        StringAssert.Contains(json, "\"currentOutput\":\"Desk Speakers\"");
+        StringAssert.Contains(json, "\"peakLevelPercent\":12");
+    }
+
+    [TestMethod]
+    public void AudioSelectCommandDeserializesTypedPayload()
+    {
+        const string json =
+            """{"type":"command:audio.select","payload":{"outputId":"device-2","setCommunicationsDevice":false}}""";
+
+        var command = JsonSerializer.Deserialize<UiToHostMessage>(json, MessageJson.Options);
+        var payload = command?.Payload?.Deserialize<AudioSelectPayload>(MessageJson.Options);
+
+        Assert.IsNotNull(command);
+        Assert.AreEqual("command:audio.select", command.Type);
+        Assert.IsNotNull(payload);
+        Assert.AreEqual("device-2", payload.OutputId);
+        Assert.IsFalse(payload.SetCommunicationsDevice);
     }
 }

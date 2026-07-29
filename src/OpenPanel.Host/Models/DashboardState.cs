@@ -52,14 +52,22 @@ public sealed record MediaSummary(
     string Title,
     string Artist,
     string Album,
+    string? ArtworkDataUrl,
     bool IsPlaying,
     double PositionSeconds,
-    double DurationSeconds);
+    double DurationSeconds,
+    bool CanToggle,
+    bool CanGoPrevious,
+    bool CanGoNext,
+    bool CanSeek);
 
 public sealed record AudioSummary(
+    string? CurrentOutputId,
     string CurrentOutput,
     int VolumePercent,
     bool IsMuted,
+    int PeakLevelPercent,
+    bool SetCommunicationsDevice,
     IReadOnlyList<AudioOutputSummary> Outputs);
 
 public sealed record AudioOutputSummary(

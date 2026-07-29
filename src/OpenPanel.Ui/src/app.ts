@@ -53,8 +53,13 @@ export function renderDashboard(root: HTMLElement, state: DashboardState): void 
 
 function updateWidget(root: HTMLElement, name: string, markup: string): void {
   const slot = root.querySelector<HTMLElement>(`[data-widget="${name}"]`);
-  if (slot) {
+  if (
+    slot &&
+    slot.dataset.markup !== markup &&
+    !slot.contains(document.activeElement)
+  ) {
     slot.innerHTML = markup;
+    slot.dataset.markup = markup;
   }
 }
 
@@ -82,7 +87,12 @@ function bindPager(root: HTMLElement): void {
   let dragStartX: number | null = null;
   let dragStartScrollLeft = 0;
   pager.addEventListener("pointerdown", (event) => {
-    if (event.pointerType !== "mouse" || event.button !== 0) {
+    const target = event.target as Element;
+    if (
+      event.pointerType !== "mouse" ||
+      event.button !== 0 ||
+      target.closest("button, input, label")
+    ) {
       return;
     }
 
@@ -133,16 +143,57 @@ function bindPager(root: HTMLElement): void {
 }
 
 function bindCommands(root: HTMLElement): void {
-  root.querySelectorAll<HTMLButtonElement>("[data-output-id]").forEach((button) => {
-    button.addEventListener("click", () => {
+  if (root.dataset.commandsBound === "true") {
+    return;
+  }
+
+  root.dataset.commandsBound = "true";
+  root.addEventListener("click", (event) => {
+    const target = event.target as Element;
+    const outputButton = target.closest<HTMLButtonElement>("[data-output-id]");
+    if (outputButton) {
       postCommand({
         type: "command:audio.select",
-        payload: { outputId: button.dataset.outputId }
+        payload: {
+          outputId: outputButton.dataset.outputId,
+          setCommunicationsDevice:
+            root.querySelector<HTMLInputElement>("[data-setting='communications']")?.checked ?? true
+        }
       });
-    });
+      return;
+    }
+
+    const command = target.closest<HTMLElement>("[data-command]")?.dataset.command;
+    switch (command) {
+      case "audio-mute": {
+        const isMuted = target.closest("[data-command]")?.textContent === "Unmute";
+        postCommand({ type: "command:audio.mute", payload: { isMuted: !isMuted } });
+        break;
+      }
+      case "media-toggle":
+        postCommand({ type: "command:media.toggle" });
+        break;
+      case "media-previous":
+        postCommand({ type: "command:media.previous" });
+        break;
+      case "media-next":
+        postCommand({ type: "command:media.next" });
+        break;
+    }
   });
 
-  root.querySelector<HTMLButtonElement>("[data-command='toggle']")?.addEventListener("click", () => {
-    postCommand({ type: "command:media.toggle" });
+  root.addEventListener("change", (event) => {
+    const input = event.target as HTMLInputElement;
+    if (input.dataset.command === "audio-volume") {
+      postCommand({
+        type: "command:audio.volume",
+        payload: { volumePercent: Number(input.value) }
+      });
+    } else if (input.dataset.command === "media-seek") {
+      postCommand({
+        type: "command:media.seek",
+        payload: { positionSeconds: Number(input.value) }
+      });
+    }
   });
 }

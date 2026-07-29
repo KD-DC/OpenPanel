@@ -21,6 +21,8 @@ public partial class MainWindow : Window
     private readonly DisplayService displayService = new();
     private readonly DashboardStateProvider stateProvider = new();
     private readonly TelemetryService telemetryService = new();
+    private readonly AudioDeviceService audioDeviceService = new();
+    private readonly MediaSessionService mediaSessionService = new();
     private readonly CancellationTokenSource telemetryCancellation = new();
 
     private DisplaySummary? selectedDisplay;
@@ -141,17 +143,83 @@ public partial class MainWindow : Window
         telemetryLoopTask ??= RunTelemetryLoopAsync(telemetryCancellation.Token);
     }
 
-    private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+    private async void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         try
         {
             var command = JsonSerializer.Deserialize<UiToHostMessage>(e.WebMessageAsJson, MessageJson.Options);
-            Debug.WriteLine($"UI command received: {command?.Type}");
+            if (command is null)
+            {
+                return;
+            }
+
+            AppLog.Write("command.received", command.Type);
+            await ExecuteCommandAsync(command, telemetryCancellation.Token);
+            AppLog.Write("command.completed", command.Type);
         }
-        catch (JsonException ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            Debug.WriteLine($"Ignoring invalid UI message: {ex.Message}");
+            AppLog.Write("command.failed", $"{ex.GetType().Name}: {ex.Message}");
+            Debug.WriteLine($"Ignoring failed UI command: {ex.Message}");
         }
+    }
+
+    private async Task ExecuteCommandAsync(
+        UiToHostMessage command,
+        CancellationToken cancellationToken)
+    {
+        switch (command.Type)
+        {
+            case "command:audio.select":
+                var select = DeserializePayload<AudioSelectPayload>(command);
+                AppLog.Write(
+                    "audio.select",
+                    $"{select.OutputId}; communications={select.SetCommunicationsDevice}");
+                await audioDeviceService.SelectOutputAsync(
+                    select.OutputId,
+                    select.SetCommunicationsDevice,
+                    cancellationToken);
+                break;
+            case "command:audio.volume":
+                var volume = DeserializePayload<AudioVolumePayload>(command);
+                await audioDeviceService.SetVolumeAsync(
+                    volume.VolumePercent,
+                    cancellationToken);
+                break;
+            case "command:audio.mute":
+                var mute = DeserializePayload<AudioMutePayload>(command);
+                await audioDeviceService.SetMutedAsync(mute.IsMuted, cancellationToken);
+                break;
+            case "command:media.toggle":
+                await mediaSessionService.TogglePlayPauseAsync(cancellationToken);
+                break;
+            case "command:media.previous":
+                await mediaSessionService.GoPreviousAsync(cancellationToken);
+                break;
+            case "command:media.next":
+                await mediaSessionService.GoNextAsync(cancellationToken);
+                break;
+            case "command:media.seek":
+                var seek = DeserializePayload<MediaSeekPayload>(command);
+                await mediaSessionService.SeekAsync(seek.PositionSeconds, cancellationToken);
+                break;
+            case "command:system.ready":
+                break;
+            default:
+                Debug.WriteLine($"Ignoring unknown UI command: {command.Type}");
+                break;
+        }
+    }
+
+    private static TPayload DeserializePayload<TPayload>(UiToHostMessage command)
+    {
+        if (command.Payload is not { } payload)
+        {
+            throw new JsonException($"Command {command.Type} requires a payload.");
+        }
+
+        return payload.Deserialize<TPayload>(MessageJson.Options) ??
+            throw new JsonException($"Command {command.Type} has an invalid payload.");
     }
 
     private async Task RunTelemetryLoopAsync(CancellationToken cancellationToken)
@@ -164,8 +232,15 @@ public partial class MainWindow : Window
             {
                 try
                 {
-                    var snapshot = await telemetryService.GetSnapshotAsync(cancellationToken);
-                    PostStateUpdate(snapshot);
+                    var telemetryTask = telemetryService.GetSnapshotAsync(cancellationToken);
+                    var mediaTask = mediaSessionService.GetCurrentSessionAsync(cancellationToken);
+                    var audioTask = audioDeviceService.GetOutputsAsync(cancellationToken);
+
+                    await Task.WhenAll(telemetryTask, mediaTask, audioTask);
+                    PostStateUpdate(
+                        telemetryTask.Result,
+                        mediaTask.Result,
+                        audioTask.Result);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
@@ -180,7 +255,10 @@ public partial class MainWindow : Window
         }
     }
 
-    private void PostStateUpdate(HardwareTelemetrySnapshot telemetry)
+    private void PostStateUpdate(
+        HardwareTelemetrySnapshot telemetry,
+        MediaSummary media,
+        AudioSummary audio)
     {
         var coreWebView = DashboardWebView.CoreWebView2;
         if (coreWebView is null || selectedDisplay is null)
@@ -188,7 +266,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var state = stateProvider.CreateState(telemetry, selectedDisplay);
+        var state = stateProvider.CreateState(telemetry, media, audio, selectedDisplay);
         var message = new HostToUiMessage("state:update", state);
         var json = JsonSerializer.Serialize(message, MessageJson.Options);
         coreWebView.PostWebMessageAsJson(json);

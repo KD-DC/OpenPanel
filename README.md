@@ -4,7 +4,7 @@
 
 OpenPanel is a Windows-first touchscreen dashboard for ultrawide secondary displays, starting with the ASUS ProArt PA147CDV at 1920 x 550.
 
-OpenPanel currently includes a native WPF host, a WebView2 dashboard surface, a TypeScript UI, typed host/UI messaging, and live read-only system telemetry. Media controls and audio output switching remain intentionally stubbed.
+OpenPanel currently includes a native WPF host, a WebView2 dashboard surface, a TypeScript UI, typed host/UI messaging, live system telemetry, Windows global media controls, and global audio output controls.
 
 ## Current Acceptance Target
 
@@ -12,7 +12,8 @@ OpenPanel currently includes a native WPF host, a WebView2 dashboard surface, a 
 - Opens a borderless 1920 x 550 dashboard window, preferring a connected display with that resolution.
 - Renders a swipeable two-page dashboard with eight widgets.
 - Updates CPU, GPU, RAM, network, clock, power, fan, and thermal values from the host once per second when supported.
-- Keeps media and audio controls as clearly labeled placeholders.
+- Shows the preferred active Windows media session with artwork, timeline, and supported playback controls.
+- Enumerates active Windows playback endpoints and controls the default output, volume, mute, and peak level.
 
 ## Requirements
 
@@ -29,6 +30,7 @@ Runtime:
 
 - `LibreHardwareMonitorLib` for read-only CPU, GPU, and memory sensor access.
 - `Microsoft.Web.WebView2` for the embedded dashboard surface.
+- `NAudio` for maintained Core Audio endpoint, volume, mute, and peak-level wrappers.
 
 Development:
 
@@ -72,6 +74,7 @@ src/OpenPanel.Ui/     TypeScript dashboard UI
 ## Known Limitations
 
 - Individual clock, power, fan, temperature, and VRAM sensors depend on the installed hardware, drivers, and Windows access permissions.
-- Media and audio data are placeholders.
+- Media data depends on applications publishing Windows system media sessions.
+- Default audio switching uses an isolated Windows compatibility interface because Microsoft does not expose that operation through a fully public API.
 - The display chooser is automatic only: it prefers a 1920 x 550 screen, then falls back to the primary display.
 - WebView2 and Node/npm must be installed separately.
