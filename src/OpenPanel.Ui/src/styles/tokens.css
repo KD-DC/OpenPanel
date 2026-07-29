@@ -1,0 +1,16 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --panel-bg: #05070a;
+  --panel-surface: #10161d;
+  --panel-surface-strong: #17212b;
+  --panel-border: #273544;
+  --text-primary: #f4f8fb;
+  --text-secondary: #a7b4c0;
+  --accent: #2ed3c6;
+  --accent-blue: #4ca3ff;
+  --warning: #f0b84f;
+  --danger: #ff6670;
+  --radius: 8px;
+  --touch-target: 46px;
+}

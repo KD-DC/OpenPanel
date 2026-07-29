@@ -1,0 +1,11 @@
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.suo
+TestResults/
+src/OpenPanel.Ui/node_modules/
+src/OpenPanel.Ui/dist/
+publish/
+*.nupkg

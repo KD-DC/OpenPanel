@@ -1,0 +1,40 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  block-size: 100%;
+  inline-size: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--panel-bg);
+  color: var(--text-primary);
+}
+
+button {
+  min-block-size: var(--touch-target);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: var(--panel-surface-strong);
+  color: var(--text-primary);
+  font: inherit;
+  touch-action: manipulation;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.25fr 1.15fr;
+  gap: 14px;
+  block-size: 550px;
+  inline-size: 1920px;
+  padding: 14px;
+  background:
+    linear-gradient(90deg, rgba(46, 211, 198, 0.08), transparent 34%),
+    var(--panel-bg);
+}
