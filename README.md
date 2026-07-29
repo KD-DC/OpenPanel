@@ -4,7 +4,7 @@
 
 OpenPanel is a Windows-first touchscreen dashboard for ultrawide secondary displays, starting with the ASUS ProArt PA147CDV at 1920 x 550.
 
-OpenPanel currently includes a native WPF host, a WebView2 dashboard surface, a TypeScript UI, typed host/UI messaging, live system telemetry, Windows global media controls, and global audio output controls.
+OpenPanel currently includes a native WPF host, a WebView2 dashboard surface, a TypeScript UI, typed host/UI messaging, live system and motherboard telemetry, Windows global media controls, and global audio output controls.
 
 ## Current Acceptance Target
 

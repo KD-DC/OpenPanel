@@ -1,6 +1,6 @@
 # Telemetry Sensors
 
-OpenPanel samples live read-only telemetry once per second.
+OpenPanel samples live read-only CPU, GPU, memory, and network telemetry once per second. Motherboard, Super-I/O, and embedded-controller sensors are sampled every three seconds because those values change more slowly and some firmware interfaces are comparatively expensive.
 
 ## Sources
 
@@ -21,6 +21,19 @@ Network rates use the busiest active non-loopback interface in each direction. T
 - Polling is canceled and LibreHardwareMonitor is closed when the dashboard window closes.
 
 Sensor failures are normal runtime conditions. Temperature or VRAM values may be unavailable depending on hardware, drivers, permissions, and vendor API support. OpenPanel runs as the current user and does not request administrator elevation.
+
+## Motherboard sensors
+
+The motherboard page enables LibreHardwareMonitor motherboard support and displays validated readings in four groups:
+
+- Temperatures, such as VRM, chipset, motherboard, CPU socket, external probes, and water temperature.
+- Cooling, including CPU, chassis, pump, and AIO fan speeds.
+- Voltage rails, including 12 V, 5 V, 3.3 V, CPU core, SoC, and DRAM when exposed.
+- Board-level power readings when supported.
+
+Sensor names and availability are determined by the board firmware and LibreHardwareMonitor. OpenPanel filters implausible readings and shows an unavailable state rather than inventing a value. At hardware initialization it writes one local motherboard sensor inventory to `%LOCALAPPDATA%\OpenPanel\openpanel.log` to make board-specific mapping issues diagnosable without continuous telemetry logging.
+
+LibreHardwareMonitor 0.9.6 does not currently expose motherboard sensors on the ASUS ROG STRIX X870E-E GAMING WIFI. OpenPanel still includes the typed provider and widget surface so supported boards work automatically and future LibreHardwareMonitor board support can flow through without an ASUS-specific protocol.
 
 ## Current Signals
 

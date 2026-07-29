@@ -4,6 +4,7 @@ public sealed record DashboardState(
     TelemetrySummary Telemetry,
     GpuSummary Gpu,
     AdvancedTelemetrySummary Advanced,
+    MotherboardSummary Motherboard,
     MediaSummary Media,
     AudioSummary Audio,
     DisplaySummary Display);
@@ -11,7 +12,8 @@ public sealed record DashboardState(
 public sealed record HardwareTelemetrySnapshot(
     TelemetrySummary Telemetry,
     GpuSummary Gpu,
-    AdvancedTelemetrySummary Advanced);
+    AdvancedTelemetrySummary Advanced,
+    MotherboardSummary Motherboard);
 
 public sealed record TelemetrySummary(
     double CpuUsagePercent,
@@ -46,6 +48,16 @@ public sealed record MemorySummary(
     double LoadPercent,
     double VirtualUsedGb,
     double VirtualTotalGb);
+
+public sealed record MotherboardSummary(
+    IReadOnlyList<NamedSensorSummary> Temperatures,
+    IReadOnlyList<NamedSensorSummary> Fans,
+    IReadOnlyList<NamedSensorSummary> Voltages,
+    IReadOnlyList<NamedSensorSummary> Power);
+
+public sealed record NamedSensorSummary(
+    string Name,
+    double Value);
 
 public sealed record MediaSummary(
     string Source,

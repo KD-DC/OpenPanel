@@ -20,6 +20,7 @@ export interface DashboardState {
   telemetry: TelemetrySummary;
   gpu: GpuSummary;
   advanced: AdvancedTelemetrySummary;
+  motherboard: MotherboardSummary;
   media: MediaSummary;
   audio: AudioSummary;
   display: DisplaySummary;
@@ -61,6 +62,18 @@ export interface MemorySummary {
   loadPercent: number;
   virtualUsedGb: number;
   virtualTotalGb: number;
+}
+
+export interface MotherboardSummary {
+  temperatures: NamedSensorSummary[];
+  fans: NamedSensorSummary[];
+  voltages: NamedSensorSummary[];
+  power: NamedSensorSummary[];
+}
+
+export interface NamedSensorSummary {
+  name: string;
+  value: number;
 }
 
 export interface MediaSummary {

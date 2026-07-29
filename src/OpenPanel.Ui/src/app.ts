@@ -9,6 +9,12 @@ import {
   renderGpuThermalsWidget,
   renderMemoryWidget
 } from "./widgets/advanced/advancedWidgets";
+import {
+  renderMotherboardCoolingWidget,
+  renderMotherboardPowerWidget,
+  renderMotherboardThermalsWidget,
+  renderMotherboardVoltagesWidget
+} from "./widgets/motherboard/motherboardWidgets";
 import type { DashboardState } from "./types";
 
 export function renderDashboard(root: HTMLElement, state: DashboardState): void {
@@ -27,10 +33,17 @@ export function renderDashboard(root: HTMLElement, state: DashboardState): void 
           <div class="widget-slot" data-widget="gpu-power"></div>
           <div class="widget-slot" data-widget="gpu-thermals"></div>
         </div>
+        <div class="dashboard dashboard-page dashboard-page--motherboard" data-page="2">
+          <div class="widget-slot" data-widget="motherboard-thermals"></div>
+          <div class="widget-slot" data-widget="motherboard-cooling"></div>
+          <div class="widget-slot" data-widget="motherboard-voltages"></div>
+          <div class="widget-slot" data-widget="motherboard-power"></div>
+        </div>
       </main>
       <nav class="page-indicator" aria-label="Dashboard pages">
         <button class="page-indicator__dot is-active" type="button" data-page-target="0" aria-label="System overview" aria-current="page"></button>
         <button class="page-indicator__dot" type="button" data-page-target="1" aria-label="Power user telemetry"></button>
+        <button class="page-indicator__dot" type="button" data-page-target="2" aria-label="Motherboard telemetry"></button>
       </nav>
     `;
     bindPager(root);
@@ -47,6 +60,26 @@ export function renderDashboard(root: HTMLElement, state: DashboardState): void 
   updateWidget(root, "cpu-power", renderCpuPowerWidget(state.advanced, state.telemetry));
   updateWidget(root, "gpu-power", renderGpuPowerWidget(state.advanced));
   updateWidget(root, "gpu-thermals", renderGpuThermalsWidget(state.advanced));
+  updateWidget(
+    root,
+    "motherboard-thermals",
+    renderMotherboardThermalsWidget(state.motherboard)
+  );
+  updateWidget(
+    root,
+    "motherboard-cooling",
+    renderMotherboardCoolingWidget(state.motherboard)
+  );
+  updateWidget(
+    root,
+    "motherboard-voltages",
+    renderMotherboardVoltagesWidget(state.motherboard)
+  );
+  updateWidget(
+    root,
+    "motherboard-power",
+    renderMotherboardPowerWidget(state.motherboard)
+  );
 
   bindCommands(root);
 }
@@ -60,7 +93,10 @@ function updateWidget(root: HTMLElement, name: string, markup: string): void {
   const activeElement = slot.contains(document.activeElement)
     ? document.activeElement as HTMLElement
     : null;
-  if (activeElement instanceof HTMLInputElement) {
+  if (
+    activeElement instanceof HTMLInputElement &&
+    activeElement.matches(":active")
+  ) {
     return;
   }
 
@@ -97,7 +133,12 @@ function bindPager(root: HTMLElement): void {
   pager.addEventListener("keydown", (event) => {
     if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
       event.preventDefault();
-      showPage(event.key === "ArrowRight" ? 1 : 0);
+      const currentPage = Math.round(
+        pager.scrollLeft / Math.max(1, pager.clientWidth)
+      );
+      const pageCount = pager.querySelectorAll("[data-page]").length;
+      const delta = event.key === "ArrowRight" ? 1 : -1;
+      showPage(Math.max(0, Math.min(pageCount - 1, currentPage + delta)));
     }
   });
 

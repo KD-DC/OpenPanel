@@ -290,3 +290,33 @@ meter {
   color: var(--text-secondary);
   font-size: 14px;
 }
+
+.sensor-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.sensor-list div {
+  display: flex;
+  min-block-size: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-block-end: 1px solid var(--panel-border);
+  padding-inline: 4px;
+}
+
+.sensor-list dt {
+  overflow: hidden;
+  color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sensor-list dd {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}

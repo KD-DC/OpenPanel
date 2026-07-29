@@ -14,12 +14,17 @@ public interface ITelemetryService
 public sealed class TelemetryService : ITelemetryService, IDisposable
 {
     private static readonly TimeSpan HardwareRetryInterval = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan MotherboardInterval = TimeSpan.FromSeconds(3);
 
     private readonly object syncRoot = new();
     private readonly NetworkThroughputSampler networkSampler = new();
 
     private Computer? computer;
     private DateTimeOffset nextHardwareOpenAttempt;
+    private DateTimeOffset nextMotherboardUpdate;
+    private IReadOnlyList<TelemetrySensorReading> motherboardReadings =
+        Array.Empty<TelemetrySensorReading>();
+    private bool motherboardInventoryLogged;
     private bool disposed;
 
     public Task<HardwareTelemetrySnapshot> GetSnapshotAsync(CancellationToken cancellationToken)
@@ -64,7 +69,8 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
                     NetworkUploadMbps: network.UploadMbps,
                     NetworkDownloadMbps: network.DownloadMbps),
                 TelemetrySensorSelector.SelectGpu(sensorReadings),
-                TelemetrySensorSelector.SelectAdvanced(sensorReadings, memory));
+                TelemetrySensorSelector.SelectAdvanced(sensorReadings, memory),
+                TelemetrySensorSelector.SelectMotherboard(sensorReadings));
         }
     }
 
@@ -79,7 +85,8 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
         {
             IsCpuEnabled = true,
             IsGpuEnabled = true,
-            IsMemoryEnabled = true
+            IsMemoryEnabled = true,
+            IsMotherboardEnabled = true
         };
 
         try
@@ -113,10 +120,53 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
         var readings = new List<TelemetrySensorReading>();
         foreach (var hardware in computer.Hardware)
         {
-            UpdateHardware(hardware, readings);
+            if (hardware.HardwareType == HardwareType.Motherboard)
+            {
+                ReadMotherboard(hardware, readings);
+            }
+            else
+            {
+                UpdateHardware(hardware, readings);
+            }
         }
 
         return readings;
+    }
+
+    private void ReadMotherboard(
+        IHardware hardware,
+        ICollection<TelemetrySensorReading> readings)
+    {
+        if (DateTimeOffset.UtcNow >= nextMotherboardUpdate)
+        {
+            var current = new List<TelemetrySensorReading>();
+            UpdateHardware(hardware, current);
+            motherboardReadings = current;
+            nextMotherboardUpdate = DateTimeOffset.UtcNow + MotherboardInterval;
+
+            if (!motherboardInventoryLogged)
+            {
+                motherboardInventoryLogged = true;
+                AppLog.Write(
+                    "motherboard.sensors",
+                    current.Count == 0
+                        ? "No supported motherboard sensors"
+                        : string.Join(
+                            " | ",
+                            current
+                                .OrderBy(reading => reading.HardwareName)
+                                .ThenBy(reading => reading.SensorType)
+                                .ThenBy(reading => reading.Name)
+                                .Select(reading =>
+                                    $"{reading.HardwareName}/{reading.Name}/" +
+                                    $"{reading.SensorType}={reading.Value:F2}")));
+            }
+        }
+
+        foreach (var reading in motherboardReadings)
+        {
+            readings.Add(reading);
+        }
     }
 
     private static void UpdateHardware(
@@ -137,7 +187,10 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
             HardwareType.Memory or
             HardwareType.GpuNvidia or
             HardwareType.GpuAmd or
-            HardwareType.GpuIntel)
+            HardwareType.GpuIntel or
+            HardwareType.Motherboard or
+            HardwareType.SuperIO or
+            HardwareType.EmbeddedController)
         {
             foreach (var sensor in hardware.Sensors)
             {
@@ -151,7 +204,8 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
                     hardware.Identifier.ToString(),
                     sensor.Name,
                     sensor.SensorType,
-                    value));
+                    value,
+                    hardware.Name));
             }
         }
 
@@ -206,6 +260,9 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
         finally
         {
             computer = null;
+            motherboardReadings = Array.Empty<TelemetrySensorReading>();
+            nextMotherboardUpdate = default;
+            motherboardInventoryLogged = false;
         }
     }
 

@@ -34,6 +34,12 @@ export const initialState: DashboardState = {
     gpuHotSpotTemperatureCelsius: null,
     gpuMemoryTemperatureCelsius: null
   },
+  motherboard: {
+    temperatures: [],
+    fans: [],
+    voltages: [],
+    power: []
+  },
   media: {
     source: "No session",
     title: "Waiting for host",

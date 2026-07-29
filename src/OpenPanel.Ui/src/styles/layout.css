@@ -76,6 +76,13 @@ button:active {
     var(--panel-bg);
 }
 
+.dashboard-page--motherboard {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background:
+    linear-gradient(90deg, rgba(84, 178, 112, 0.07), transparent 38%),
+    var(--panel-bg);
+}
+
 .widget-slot {
   min-inline-size: 0;
 }

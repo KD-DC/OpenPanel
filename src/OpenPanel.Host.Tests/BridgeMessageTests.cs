@@ -23,7 +23,12 @@ public sealed class BridgeMessageTests
                 10501,
                 42,
                 67,
-                72));
+                72),
+            new MotherboardSummary(
+                [new NamedSensorSummary("VRM", 48)],
+                [new NamedSensorSummary("CPU Fan", 1250)],
+                [new NamedSensorSummary("+12V", 12.08)],
+                []));
         var display = new DisplaySummary("ASUS target", 0, 0, 1920, 550, false);
         var media = new MediaSummary(
             "Spotify",
@@ -60,6 +65,8 @@ public sealed class BridgeMessageTests
         StringAssert.Contains(json, "\"gpuUsagePercent\":36");
         StringAssert.Contains(json, "\"availableGb\":42.6");
         StringAssert.Contains(json, "\"cpuPackagePowerWatts\":88");
+        StringAssert.Contains(json, "\"name\":\"CPU Fan\"");
+        StringAssert.Contains(json, "\"value\":1250");
         StringAssert.Contains(json, "\"title\":\"Test Track\"");
         StringAssert.Contains(json, "\"currentOutput\":\"Desk Speakers\"");
         StringAssert.Contains(json, "\"peakLevelPercent\":12");

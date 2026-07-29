@@ -8,7 +8,8 @@ internal readonly record struct TelemetrySensorReading(
     string HardwareId,
     string Name,
     SensorType SensorType,
-    double Value);
+    double Value,
+    string HardwareName = "");
 
 internal static class TelemetrySensorSelector
 {
@@ -158,6 +159,70 @@ internal static class TelemetrySensorSelector
                 ["GPU Memory Junction", "GPU Memory"]));
     }
 
+    public static MotherboardSummary SelectMotherboard(
+        IEnumerable<TelemetrySensorReading> readings)
+    {
+        var motherboard = readings
+            .Where(reading => IsMotherboard(reading.HardwareType))
+            .ToArray();
+
+        return new MotherboardSummary(
+            SelectNamedSensors(
+                motherboard,
+                SensorType.Temperature,
+                value => IsValidTemperature(value),
+                ["VRM", "Chipset", "Motherboard", "CPU", "T_Sensor", "Water"]),
+            SelectNamedSensors(
+                motherboard,
+                SensorType.Fan,
+                value => value is >= 0 and < 50_000,
+                ["CPU", "AIO", "Pump", "Chassis", "Water"]),
+            SelectNamedSensors(
+                motherboard,
+                SensorType.Voltage,
+                value => value is > 0 and < 30,
+                ["12V", "5V", "3.3V", "VCore", "SOC", "DRAM"]),
+            SelectNamedSensors(
+                motherboard,
+                SensorType.Power,
+                value => value is >= 0 and < 2_000,
+                ["CPU", "VRM", "SOC", "DRAM"]));
+    }
+
+    private static IReadOnlyList<NamedSensorSummary> SelectNamedSensors(
+        IEnumerable<TelemetrySensorReading> readings,
+        SensorType sensorType,
+        Func<double, bool> isValid,
+        IReadOnlyList<string> preferredNames)
+    {
+        return readings
+            .Where(reading =>
+                reading.SensorType == sensorType &&
+                isValid(reading.Value))
+            .OrderBy(reading => SensorPriority(reading.Name, preferredNames))
+            .ThenBy(reading => reading.Name, StringComparer.OrdinalIgnoreCase)
+            .GroupBy(reading => reading.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .Take(5)
+            .Select(reading => new NamedSensorSummary(reading.Name, reading.Value))
+            .ToArray();
+    }
+
+    private static int SensorPriority(
+        string name,
+        IReadOnlyList<string> preferredNames)
+    {
+        for (var index = 0; index < preferredNames.Count; index++)
+        {
+            if (name.Contains(preferredNames[index], StringComparison.OrdinalIgnoreCase))
+            {
+                return index;
+            }
+        }
+
+        return preferredNames.Count;
+    }
+
     private static MemorySummary SelectMemory(
         IEnumerable<TelemetrySensorReading> readings,
         MemorySummary fallback)
@@ -289,6 +354,14 @@ internal static class TelemetrySensorSelector
     private static bool IsValidTemperature(double value)
     {
         return value is > 0 and < 150;
+    }
+
+    private static bool IsMotherboard(HardwareType hardwareType)
+    {
+        return hardwareType is
+            HardwareType.Motherboard or
+            HardwareType.SuperIO or
+            HardwareType.EmbeddedController;
     }
 
     private static double? PositiveOrNull(double? value)
