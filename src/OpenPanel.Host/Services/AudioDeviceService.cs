@@ -96,8 +96,7 @@ public sealed class AudioDeviceService : IAudioDeviceService
                 (int)Math.Round(defaultDevice.AudioMeterInformation.MasterPeakValue * 100),
                 setCommunicationsDevice,
                 outputs
-                    .OrderByDescending(output => output.IsDefault)
-                    .ThenBy(output => output.Name, StringComparer.CurrentCultureIgnoreCase)
+                    .OrderBy(output => output.Name, StringComparer.CurrentCultureIgnoreCase)
                     .ToArray());
         }
         catch (Exception) when (!cancellationToken.IsCancellationRequested)

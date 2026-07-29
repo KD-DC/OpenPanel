@@ -6,6 +6,7 @@ OpenPanel controls the global Windows playback output only. It does not perform 
 
 - Enumerates active render endpoints through NAudio/Core Audio.
 - Re-enumerates endpoints during each state refresh so newly connected Bluetooth and USB outputs appear without restarting OpenPanel.
+- Keeps output buttons in stable name order when the default endpoint changes, so selecting an output never moves its button.
 - Highlights the current multimedia default endpoint.
 - Sets console and multimedia defaults with one tap.
 - Optionally sets the communications default at the same time.
