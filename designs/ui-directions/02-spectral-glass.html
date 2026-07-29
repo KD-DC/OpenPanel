@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920">
+  <title>OpenPanel - Spectral Glass</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    :root {
+      --bg: #090b0e;
+      --surface: rgba(24, 28, 33, .78);
+      --line: rgba(255,255,255,.1);
+      --muted: #9da7ae;
+      --mint: #65efc6;
+      --blue: #70a7ff;
+      --coral: #ff7a74;
+      --amber: #f5c965;
+    }
+    .screen {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.35fr 1.15fr;
+      gap: 14px;
+      padding: 14px;
+      background:
+        radial-gradient(circle at 48% 105%, rgba(255,122,116,.12), transparent 34%),
+        radial-gradient(circle at 8% -20%, rgba(101,239,198,.11), transparent 30%),
+        #090b0e;
+    }
+    .card {
+      position: relative;
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 22px;
+      background: var(--surface);
+      box-shadow: inset 0 1px rgba(255,255,255,.05), 0 18px 40px rgba(0,0,0,.18);
+      backdrop-filter: blur(18px);
+    }
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 650;
+    }
+    .pulse {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--mint);
+      font-size: 12px;
+    }
+    .pulse::before {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+      box-shadow: 0 0 12px currentColor;
+    }
+    .ring-wrap {
+      position: relative;
+      display: grid;
+      width: 194px;
+      height: 194px;
+      align-self: center;
+      margin-top: 24px;
+      place-items: center;
+    }
+    .ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: conic-gradient(var(--accent) calc(var(--value) * 1%), rgba(255,255,255,.07) 0);
+      -webkit-mask: radial-gradient(circle, transparent 61%, #000 62%);
+      mask: radial-gradient(circle, transparent 61%, #000 62%);
+    }
+    .ring-value {
+      display: grid;
+      text-align: center;
+    }
+    .ring-value strong {
+      font-size: 54px;
+      font-weight: 550;
+      line-height: 1;
+    }
+    .ring-value span {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .memory {
+      margin-top: 24px;
+    }
+    .memory-head {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .memory-head strong { color: #edf2f3; }
+    .bar {
+      height: 7px;
+      border-radius: 6px;
+    }
+    .bar > span {
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), #eefbff);
+    }
+    .mini-stats {
+      display: flex;
+      justify-content: space-between;
+      margin-top: auto;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .mini-stats strong {
+      display: block;
+      margin-top: 3px;
+      color: #f3f6f7;
+      font-size: 15px;
+    }
+    .media {
+      padding: 0;
+      background: #14181c;
+    }
+    .media-backdrop {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: .18;
+      filter: blur(34px) saturate(1.2);
+      object-fit: cover;
+      transform: scale(1.15);
+    }
+    .media-inner {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      height: 100%;
+      grid-template-columns: 214px minmax(0,1fr);
+      align-items: center;
+      gap: 24px;
+      padding: 24px;
+      background: linear-gradient(90deg, rgba(10,12,14,.32), rgba(10,12,14,.82));
+    }
+    .album-art {
+      width: 214px;
+      height: 214px;
+      border-radius: 7px;
+      box-shadow: 0 22px 50px rgba(0,0,0,.45);
+    }
+    .media-copy { min-width: 0; }
+    .now-playing {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--coral);
+      font-size: 12px;
+      font-weight: 720;
+      text-transform: uppercase;
+    }
+    .media h1 {
+      margin: 14px 0 6px;
+      overflow: hidden;
+      font-size: 38px;
+      font-weight: 620;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .artist {
+      margin: 0;
+      color: #c7ced2;
+      font-size: 18px;
+    }
+    .album {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .media-progress { margin-top: 32px; }
+    .time {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 18px;
+    }
+    .controls button {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: rgba(255,255,255,.06);
+    }
+    .controls .play {
+      width: 52px;
+      height: 52px;
+      border: 0;
+      background: #f4f7f8;
+      color: #111417;
+    }
+    .controls .active { color: var(--mint); }
+    .audio { --accent: var(--amber); }
+    .volume-line {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 28px;
+    }
+    .volume-line strong {
+      font-size: 52px;
+      font-weight: 550;
+    }
+    .volume-line span { color: var(--muted); }
+    .device-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 22px;
+    }
+    .device {
+      display: grid;
+      min-height: 56px;
+      grid-template-columns: 38px minmax(0,1fr) 18px;
+      align-items: center;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      padding: 0 12px;
+      background: rgba(255,255,255,.035);
+      color: var(--muted);
+    }
+    .device.active {
+      border-color: rgba(245,201,101,.45);
+      background: rgba(245,201,101,.09);
+      color: #f7f1de;
+    }
+    .device-icon {
+      display: grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      border-radius: 50%;
+      background: rgba(255,255,255,.07);
+    }
+    .check { color: var(--amber); }
+    .volume-control {
+      display: grid;
+      grid-template-columns: 46px 1fr;
+      align-items: center;
+      gap: 12px;
+      margin-top: auto;
+    }
+    .volume-control button {
+      width: 46px;
+      height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: rgba(255,255,255,.05);
+    }
+  </style>
+</head>
+<body>
+  <main class="screen">
+    <section class="card" style="--accent:var(--mint)">
+      <header class="card-head"><span class="title"><i data-lucide="cpu"></i>System</span><span class="pulse">Live</span></header>
+      <div class="ring-wrap"><div class="ring" style="--value:34"></div><div class="ring-value"><strong>34%</strong><span>CPU load</span></div></div>
+      <div class="memory"><div class="memory-head"><span>Memory</span><strong>21.4 / 64 GB</strong></div><div class="bar"><span style="width:33%"></span></div></div>
+      <div class="mini-stats"><span>Temperature<strong>48 C</strong></span><span>Network down<strong>82.5 Mbps</strong></span></div>
+    </section>
+    <section class="card" style="--accent:var(--blue)">
+      <header class="card-head"><span class="title"><i data-lucide="microchip"></i>Graphics</span><span class="pulse" style="color:var(--blue)">Live</span></header>
+      <div class="ring-wrap"><div class="ring" style="--value:67"></div><div class="ring-value"><strong>67%</strong><span>GPU load</span></div></div>
+      <div class="memory"><div class="memory-head"><span>Video memory</span><strong>8.7 / 16 GB</strong></div><div class="bar"><span style="width:54%"></span></div></div>
+      <div class="mini-stats"><span>Temperature<strong>61 C</strong></span><span>Power draw<strong>218 W</strong></span><span>Fans<strong>1480</strong></span></div>
+    </section>
+    <section class="card media">
+      <img class="media-backdrop" src="assets/fictional-album.png" alt="">
+      <div class="media-inner">
+        <img class="album-art" src="assets/fictional-album.png" alt="">
+        <div class="media-copy">
+          <span class="now-playing"><i data-lucide="audio-lines"></i>Now playing</span>
+          <h1>Lazy Eye</h1>
+          <p class="artist">Silversun Pickups</p>
+          <p class="album">Carnavas</p>
+          <div class="media-progress"><div class="bar"><span style="width:63%;background:linear-gradient(90deg,var(--coral),var(--amber))"></span></div><div class="time"><span>3:42</span><span>5:54</span></div></div>
+          <div class="controls">
+            <button aria-label="Previous"><i data-lucide="skip-back"></i></button>
+            <button class="play" aria-label="Pause"><i data-lucide="pause"></i></button>
+            <button aria-label="Next"><i data-lucide="skip-forward"></i></button>
+            <button class="active" aria-label="Shuffle"><i data-lucide="shuffle"></i></button>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="card audio">
+      <header class="card-head"><span class="title"><i data-lucide="volume-2"></i>Audio output</span><span class="pulse" style="color:var(--amber)">Active</span></header>
+      <div class="volume-line"><strong>42%</strong><span>master volume</span></div>
+      <div class="device-list">
+        <div class="device"><span class="device-icon"><i data-lucide="monitor-speaker"></i></span><span class="truncate">LG UltraGear+</span></div>
+        <div class="device active"><span class="device-icon"><i data-lucide="monitor-speaker"></i></span><span class="truncate">3 - ASUS PA147</span><i class="check" data-lucide="check"></i></div>
+        <div class="device"><span class="device-icon"><i data-lucide="headphones"></i></span><span class="truncate">Bose QC Ultra</span></div>
+      </div>
+      <div class="volume-control"><button aria-label="Mute"><i data-lucide="volume-2"></i></button><div class="bar"><span style="width:42%;background:var(--amber)"></span></div></div>
+    </section>
+  </main>
+  <script src="../../src/OpenPanel.Ui/node_modules/lucide/dist/umd/lucide.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,568 @@
+:root {
+  --oled-line: #202224;
+  --oled-line-strong: #303336;
+  --oled-muted: #777e82;
+  --oled-green: #72eda5;
+  --oled-blue: #72b6ff;
+  --oled-yellow: #f2ca5e;
+  --oled-red: #ff6f67;
+}
+
+.dashboard-page--oled {
+  background: #000;
+}
+
+.dashboard-page--oled .widget-slot {
+  min-block-size: 0;
+}
+
+.oled-zone {
+  min-inline-size: 0;
+  block-size: 100%;
+  border-inline-end: 1px solid var(--oled-line);
+  background: #000;
+}
+
+.oled-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--oled-muted);
+  font-size: 12px;
+  font-weight: 720;
+  text-transform: uppercase;
+}
+
+.oled-title svg {
+  inline-size: 18px;
+  block-size: 18px;
+}
+
+.oled-metric {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 22px;
+}
+
+.oled-primary {
+  margin-block-start: 35px;
+  font-size: 72px;
+  font-weight: 470;
+  line-height: 0.9;
+}
+
+.oled-primary small {
+  color: var(--oled-muted);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.oled-primary-label {
+  margin-block-start: 13px;
+  color: var(--oled-muted);
+  font-size: 13px;
+}
+
+.oled-reading {
+  margin-block-start: 48px;
+}
+
+.oled-reading--capacity {
+  margin-block-start: 52px;
+}
+
+.oled-reading__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-block-end: 11px;
+  color: var(--oled-muted);
+  font-size: 12px;
+}
+
+.oled-reading__head strong {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-weight: 560;
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oled-meter {
+  overflow: visible;
+  block-size: 2px;
+  background: #242628;
+}
+
+.oled-meter span {
+  display: block;
+  block-size: 100%;
+  background: var(--oled-accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--oled-accent), transparent 42%);
+}
+
+.oled-metrics {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-block-start: auto;
+}
+
+.oled-metrics span {
+  min-inline-size: 0;
+  color: var(--oled-muted);
+  font-size: 10px;
+}
+
+.oled-metrics strong {
+  display: block;
+  overflow: hidden;
+  margin-block-start: 7px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 560;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oled-media {
+  position: relative;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  align-items: center;
+  gap: 30px;
+  overflow: hidden;
+  padding: 28px 34px;
+}
+
+.dashboard-page--oled .widget-hardware {
+  border-color: var(--oled-line);
+  background: #000;
+  box-shadow: none;
+}
+
+.dashboard-page--oled .widget-hardware .hardware-load {
+  border-color: var(--oled-line);
+  background: #090b0c;
+}
+
+.dashboard-page--oled .widget-hardware .hardware-load > div > span,
+.dashboard-page--oled .widget-hardware .hardware-pane__usage > div > span {
+  background: var(--oled-green);
+}
+
+.oled-media .media-size-toggle {
+  border-color: var(--oled-line-strong);
+  background: rgba(0, 0, 0, 0.72);
+  color: var(--oled-muted);
+}
+
+.oled-media--compact {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 0;
+  padding: 22px;
+  text-align: center;
+}
+
+.oled-media--compact::after {
+  background: rgba(0, 0, 0, 0.66);
+}
+
+.oled-media--compact .oled-media__art-wrap {
+  inline-size: 170px;
+  block-size: 170px;
+  flex: 0 0 auto;
+  margin-block: 16px 20px;
+}
+
+.oled-media--compact .oled-media__art {
+  inline-size: 170px;
+  block-size: 170px;
+}
+
+.oled-media-compact__copy {
+  position: relative;
+  z-index: 1;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.oled-media.oled-media--compact h1 {
+  margin: 14px 0 7px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.oled-media--compact p {
+  font-size: 17px;
+}
+
+.oled-media-compact__transport {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-block-start: auto;
+}
+
+.oled-media-compact__transport button {
+  display: grid;
+  min-block-size: 48px;
+  min-inline-size: 48px;
+  place-items: center;
+  border: 1px solid var(--oled-line-strong);
+  border-radius: 50%;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.78);
+  color: #b3b8ba;
+}
+
+.oled-media::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.84) 78%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.58), transparent 70%);
+  content: "";
+}
+
+.oled-media__backdrop {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  opacity: 0.76;
+  object-fit: cover;
+  filter: saturate(0.78) brightness(0.55);
+  transform: scale(1.02);
+}
+
+.oled-media__art-wrap {
+  position: relative;
+  z-index: 1;
+  inline-size: 260px;
+  block-size: 260px;
+}
+
+.oled-media__art-wrap::after {
+  position: absolute;
+  inset: auto 10% -18px;
+  block-size: 18px;
+  background: rgba(255, 111, 103, 0.22);
+  content: "";
+  filter: blur(18px);
+}
+
+.oled-media__art {
+  position: relative;
+  z-index: 1;
+  display: block;
+  inline-size: 260px;
+  block-size: 260px;
+  border: 1px solid #282b2d;
+  border-radius: 3px;
+  object-fit: cover;
+  filter: saturate(0.88) contrast(1.08);
+}
+
+.oled-media__fallback {
+  display: grid;
+  place-items: center;
+  background: #101214;
+  color: var(--oled-red);
+  font-size: 46px;
+  font-weight: 800;
+}
+
+.oled-media__copy {
+  position: relative;
+  z-index: 1;
+  min-inline-size: 0;
+}
+
+.oled-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-inline-size: 100%;
+  overflow: hidden;
+  color: var(--oled-green);
+  font-size: 11px;
+  font-weight: 720;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.oled-live::before {
+  inline-size: 6px;
+  block-size: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 10px currentColor;
+  content: "";
+}
+
+.oled-live.is-idle {
+  color: var(--oled-muted);
+}
+
+.oled-media h1 {
+  margin: 22px 0 8px;
+  overflow: hidden;
+  font-size: 49px;
+  font-weight: 540;
+  line-height: 0.96;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oled-media p {
+  margin: 0;
+  overflow: hidden;
+  color: #b9bec0;
+  font-size: 19px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oled-media .oled-media__album {
+  margin-block-start: 8px;
+  color: var(--oled-muted);
+  font-size: 12px;
+}
+
+.oled-media__timeline {
+  margin-block-start: 31px;
+}
+
+.oled-media__progress {
+  inline-size: 100%;
+  block-size: 18px;
+  margin: 0;
+  accent-color: var(--oled-red);
+}
+
+.oled-media__time {
+  display: flex;
+  justify-content: space-between;
+  margin-block-start: 2px;
+  color: var(--oled-muted);
+  font-size: 10px;
+}
+
+.oled-transport {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-block-start: 20px;
+}
+
+.oled-transport button,
+.oled-volume button {
+  display: grid;
+  min-inline-size: 46px;
+  inline-size: 46px;
+  block-size: 46px;
+  place-items: center;
+  border: 1px solid var(--oled-line-strong);
+  border-radius: 50%;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.78);
+  color: #b3b8ba;
+}
+
+.oled-transport .oled-transport__play {
+  min-inline-size: 56px;
+  inline-size: 56px;
+  block-size: 56px;
+  border: 0;
+  background: var(--text-primary);
+  color: #000;
+}
+
+.oled-transport button.is-active {
+  border-color: rgba(114, 237, 165, 0.46);
+  color: var(--oled-green);
+}
+
+.oled-transport button:disabled {
+  opacity: 0.34;
+}
+
+.oled-audio {
+  display: flex;
+  flex-direction: column;
+  border-inline-end: 0;
+  padding: 18px 20px 18px 26px;
+}
+
+.oled-audio__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.oled-audio__head .audio-center__heading > strong {
+  font-size: 38px;
+  font-weight: 500;
+}
+
+.oled-audio .audio-center__expand {
+  border-color: var(--oled-line-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--oled-muted);
+}
+
+.oled-audio .audio-center__playback {
+  overflow: hidden;
+}
+
+.widget-slot[data-widget="audio"][data-expanded="true"] > .oled-audio {
+  border-color: var(--oled-line-strong);
+  padding: 18px 24px;
+}
+
+.widget-slot[data-widget="audio"][data-expanded="true"] .audio-center__expanded {
+  border-color: var(--oled-line);
+}
+
+.oled-audio .audio-center__input-list button,
+.oled-audio .audio-center__input-controls > button,
+.oled-audio .audio-center__session button {
+  border-color: var(--oled-line-strong);
+  background: transparent;
+  color: var(--oled-muted);
+}
+
+.oled-audio .audio-center__input-list button.is-active {
+  border-color: rgba(240, 184, 79, 0.58);
+  background: rgba(240, 184, 79, 0.1);
+  color: var(--oled-yellow);
+}
+
+.oled-audio .audio-center__input-controls input,
+.oled-audio .audio-center__session input {
+  accent-color: var(--oled-yellow);
+}
+
+.oled-audio .audio-center__mic-meter span,
+.oled-audio .audio-center__session-activity {
+  background: var(--oled-yellow);
+}
+
+.oled-audio .audio-center__session {
+  border-color: var(--oled-line);
+}
+
+.oled-audio__current {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-block-start: 25px;
+  border-block-end: 1px solid var(--oled-line);
+  padding-block-end: 18px;
+  color: var(--oled-yellow);
+}
+
+.oled-audio__current div {
+  min-inline-size: 0;
+}
+
+.oled-audio__current span {
+  display: block;
+  color: var(--oled-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.oled-audio__current strong {
+  display: block;
+  overflow: hidden;
+  margin-block-start: 4px;
+  color: var(--text-primary);
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oled-outputs {
+  display: grid;
+  gap: 0;
+  margin-block-start: 9px;
+  overflow: hidden;
+}
+
+.oled-output {
+  display: grid;
+  min-inline-size: 0;
+  min-block-size: 58px;
+  grid-template-columns: 36px minmax(0, 1fr) 8px;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-block-end: 1px solid var(--oled-line);
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--oled-muted);
+  text-align: start;
+}
+
+.oled-output span:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oled-output.is-active {
+  color: var(--text-primary);
+}
+
+.oled-output.is-active svg {
+  color: var(--oled-yellow);
+}
+
+.oled-output__dot {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.oled-output.is-active .oled-output__dot {
+  background: var(--oled-yellow);
+  box-shadow: 0 0 10px var(--oled-yellow);
+}
+
+.oled-audio__empty {
+  margin-block-start: 24px;
+  color: var(--oled-muted);
+}
+
+.oled-volume {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  align-items: center;
+  gap: 14px;
+  margin-block-start: auto;
+}
+
+.oled-volume button {
+  min-inline-size: 48px;
+  inline-size: 48px;
+  block-size: 48px;
+}
+
+.oled-volume input {
+  inline-size: 100%;
+  accent-color: var(--oled-yellow);
+}

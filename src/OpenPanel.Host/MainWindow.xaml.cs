@@ -8,6 +8,7 @@ using Microsoft.Web.WebView2.Core;
 using OpenPanel.Host.Messaging;
 using OpenPanel.Host.Models;
 using OpenPanel.Host.Services;
+using Forms = System.Windows.Forms;
 
 namespace OpenPanel.Host;
 
@@ -20,8 +21,17 @@ public partial class MainWindow : Window
 
     private readonly DisplayService displayService = new();
     private readonly DashboardStateProvider stateProvider = new();
+    private readonly SettingsService settingsService = new();
     private readonly TelemetryService telemetryService = new();
+    private readonly AudioDeviceService audioDeviceService = new();
+    private readonly MediaSessionService mediaSessionService = new();
+    private readonly WeatherService weatherService;
     private readonly CancellationTokenSource telemetryCancellation = new();
+    private readonly Forms.ContextMenuStrip trayMenu;
+    private readonly Forms.ToolStripMenuItem currentAppearanceMenuItem;
+    private readonly Forms.ToolStripMenuItem mediaOledAppearanceMenuItem;
+    private readonly System.Drawing.Icon trayIconImage;
+    private readonly Forms.NotifyIcon trayIcon;
 
     private DisplaySummary? selectedDisplay;
     private Task? telemetryLoopTask;
@@ -29,11 +39,44 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        weatherService = new WeatherService(settingsService.WeatherLocation);
+
+        trayMenu = new Forms.ContextMenuStrip();
+        trayMenu.Items.Add("Open OpenPanel", null, OnTrayOpen);
+
+        var appearanceMenu = new Forms.ToolStripMenuItem("Appearance");
+        currentAppearanceMenuItem = new Forms.ToolStripMenuItem(
+            "Current",
+            null,
+            OnCurrentAppearance);
+        mediaOledAppearanceMenuItem = new Forms.ToolStripMenuItem(
+            "Media OLED",
+            null,
+            OnMediaOledAppearance);
+        appearanceMenu.DropDownItems.Add(currentAppearanceMenuItem);
+        appearanceMenu.DropDownItems.Add(mediaOledAppearanceMenuItem);
+        trayMenu.Items.Add(appearanceMenu);
+        trayMenu.Items.Add(new Forms.ToolStripSeparator());
+        trayMenu.Items.Add("Exit OpenPanel", null, OnTrayExit);
+        UpdateAppearanceMenu();
+
+        trayIconImage = CreateTrayIcon();
+        trayIcon = new Forms.NotifyIcon
+        {
+            ContextMenuStrip = trayMenu,
+            Icon = trayIconImage,
+            Text = "OpenPanel",
+            Visible = true
+        };
+        trayIcon.DoubleClick += OnTrayOpen;
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         selectedDisplay = ApplyDashboardPlacement();
+        AppLog.Write(
+            "app.loaded",
+            $"{selectedDisplay.Name}; {selectedDisplay.Width}x{selectedDisplay.Height}");
 
         try
         {
@@ -71,6 +114,11 @@ public partial class MainWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         telemetryCancellation.Cancel();
+        trayIcon.Visible = false;
+        trayIcon.DoubleClick -= OnTrayOpen;
+        trayIcon.Dispose();
+        trayIconImage.Dispose();
+        trayMenu.Dispose();
 
         if (DashboardWebView.CoreWebView2 is { } coreWebView)
         {
@@ -80,6 +128,119 @@ public partial class MainWindow : Window
 
         telemetryService.Dispose();
         base.OnClosed(e);
+    }
+
+    private void OnTrayOpen(object? sender, EventArgs e)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (WindowState == WindowState.Minimized)
+            {
+                WindowState = WindowState.Normal;
+            }
+
+            Show();
+            Activate();
+        });
+    }
+
+    private void OnTrayExit(object? sender, EventArgs e)
+    {
+        Dispatcher.BeginInvoke(() => System.Windows.Application.Current.Shutdown());
+    }
+
+    private async void OnCurrentAppearance(object? sender, EventArgs e)
+    {
+        await SetAppearanceAsync(SettingsService.CurrentAppearance);
+    }
+
+    private async void OnMediaOledAppearance(object? sender, EventArgs e)
+    {
+        await SetAppearanceAsync(SettingsService.MediaOledAppearance);
+    }
+
+    private async Task SetAppearanceAsync(string appearance)
+    {
+        try
+        {
+            await settingsService.SetAppearanceAsync(
+                appearance,
+                telemetryCancellation.Token);
+            UpdateAppearanceMenu();
+            AppLog.Write("appearance.changed", appearance);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            AppLog.Write(
+                "appearance.failed",
+                $"{ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    private void UpdateAppearanceMenu()
+    {
+        currentAppearanceMenuItem.Checked =
+            settingsService.Appearance == SettingsService.CurrentAppearance;
+        mediaOledAppearanceMenuItem.Checked =
+            settingsService.Appearance == SettingsService.MediaOledAppearance;
+    }
+
+    private static System.Drawing.Icon CreateTrayIcon()
+    {
+        using var bitmap = new System.Drawing.Bitmap(
+            32,
+            32,
+            System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using var graphics = System.Drawing.Graphics.FromImage(bitmap);
+        graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        graphics.Clear(System.Drawing.Color.Transparent);
+
+        using var screenFill = new System.Drawing.SolidBrush(
+            System.Drawing.Color.FromArgb(235, 5, 7, 10));
+        using var accentPen = new System.Drawing.Pen(
+            System.Drawing.Color.FromArgb(46, 211, 198),
+            2.5f)
+        {
+            StartCap = System.Drawing.Drawing2D.LineCap.Round,
+            EndCap = System.Drawing.Drawing2D.LineCap.Round,
+            LineJoin = System.Drawing.Drawing2D.LineJoin.Round
+        };
+        using var pulsePen = new System.Drawing.Pen(
+            System.Drawing.Color.White,
+            2.25f)
+        {
+            StartCap = System.Drawing.Drawing2D.LineCap.Round,
+            EndCap = System.Drawing.Drawing2D.LineCap.Round,
+            LineJoin = System.Drawing.Drawing2D.LineJoin.Round
+        };
+
+        graphics.FillRectangle(screenFill, 3, 4, 26, 19);
+        graphics.DrawRectangle(accentPen, 3.5f, 4.5f, 25, 18);
+        graphics.DrawLines(
+            pulsePen,
+            [
+                new System.Drawing.PointF(6, 14),
+                new System.Drawing.PointF(10, 14),
+                new System.Drawing.PointF(12.5f, 10),
+                new System.Drawing.PointF(15.5f, 18),
+                new System.Drawing.PointF(18.5f, 12),
+                new System.Drawing.PointF(22, 12),
+                new System.Drawing.PointF(24, 9),
+                new System.Drawing.PointF(26, 9)
+            ]);
+        graphics.DrawLine(accentPen, 16, 23, 16, 27);
+        graphics.DrawLine(accentPen, 11, 27, 21, 27);
+
+        var iconHandle = bitmap.GetHicon();
+        try
+        {
+            using var icon = System.Drawing.Icon.FromHandle(iconHandle);
+            return (System.Drawing.Icon)icon.Clone();
+        }
+        finally
+        {
+            DestroyIcon(iconHandle);
+        }
     }
 
     private DisplaySummary ApplyDashboardPlacement()
@@ -115,6 +276,10 @@ public partial class MainWindow : Window
         int height,
         uint flags);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DestroyIcon(IntPtr iconHandle);
+
     private static string ResolveDashboardDirectory()
     {
         var dashboardDirectory = Path.Combine(AppContext.BaseDirectory, "Dashboard");
@@ -134,24 +299,134 @@ public partial class MainWindow : Window
     {
         if (!e.IsSuccess)
         {
+            AppLog.Write("dashboard.navigation.failed", e.WebErrorStatus.ToString());
             Debug.WriteLine($"Dashboard navigation failed: {e.WebErrorStatus}");
             return;
         }
 
+        AppLog.Write("dashboard.navigation.completed", DashboardWebView.Source?.ToString() ?? "");
         telemetryLoopTask ??= RunTelemetryLoopAsync(telemetryCancellation.Token);
     }
 
-    private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+    private async void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         try
         {
             var command = JsonSerializer.Deserialize<UiToHostMessage>(e.WebMessageAsJson, MessageJson.Options);
-            Debug.WriteLine($"UI command received: {command?.Type}");
+            if (command is null)
+            {
+                return;
+            }
+
+            AppLog.Write("command.received", command.Type);
+            await ExecuteCommandAsync(command, telemetryCancellation.Token);
+            AppLog.Write("command.completed", command.Type);
         }
-        catch (JsonException ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            Debug.WriteLine($"Ignoring invalid UI message: {ex.Message}");
+            AppLog.Write("command.failed", $"{ex.GetType().Name}: {ex.Message}");
+            Debug.WriteLine($"Ignoring failed UI command: {ex.Message}");
         }
+    }
+
+    private async Task ExecuteCommandAsync(
+        UiToHostMessage command,
+        CancellationToken cancellationToken)
+    {
+        switch (command.Type)
+        {
+            case "command:audio.select":
+                var select = DeserializePayload<AudioSelectPayload>(command);
+                AppLog.Write(
+                    "audio.select",
+                    $"{select.OutputId}; communications={select.SetCommunicationsDevice}");
+                await audioDeviceService.SelectOutputAsync(
+                    select.OutputId,
+                    select.SetCommunicationsDevice,
+                    cancellationToken);
+                break;
+            case "command:audio.volume":
+                var volume = DeserializePayload<AudioVolumePayload>(command);
+                await audioDeviceService.SetVolumeAsync(
+                    volume.VolumePercent,
+                    cancellationToken);
+                break;
+            case "command:audio.mute":
+                var mute = DeserializePayload<AudioMutePayload>(command);
+                await audioDeviceService.SetMutedAsync(mute.IsMuted, cancellationToken);
+                break;
+            case "command:audio.expanded":
+                var expanded = DeserializePayload<AudioExpandedPayload>(command);
+                audioDeviceService.SetExtendedState(expanded.IsExpanded);
+                break;
+            case "command:audio.input.select":
+                var inputSelect = DeserializePayload<AudioInputSelectPayload>(command);
+                await audioDeviceService.SelectInputAsync(
+                    inputSelect.InputId,
+                    cancellationToken);
+                break;
+            case "command:audio.input.volume":
+                var inputVolume = DeserializePayload<AudioInputVolumePayload>(command);
+                await audioDeviceService.SetInputVolumeAsync(
+                    inputVolume.VolumePercent,
+                    cancellationToken);
+                break;
+            case "command:audio.input.mute":
+                var inputMute = DeserializePayload<AudioInputMutePayload>(command);
+                await audioDeviceService.SetInputMutedAsync(
+                    inputMute.IsMuted,
+                    cancellationToken);
+                break;
+            case "command:audio.session.volume":
+                var sessionVolume = DeserializePayload<AudioSessionVolumePayload>(command);
+                await audioDeviceService.SetSessionVolumeAsync(
+                    sessionVolume.SessionId,
+                    sessionVolume.VolumePercent,
+                    cancellationToken);
+                break;
+            case "command:audio.session.mute":
+                var sessionMute = DeserializePayload<AudioSessionMutePayload>(command);
+                await audioDeviceService.SetSessionMutedAsync(
+                    sessionMute.SessionId,
+                    sessionMute.IsMuted,
+                    cancellationToken);
+                break;
+            case "command:media.toggle":
+                await mediaSessionService.TogglePlayPauseAsync(cancellationToken);
+                break;
+            case "command:media.previous":
+                await mediaSessionService.GoPreviousAsync(cancellationToken);
+                break;
+            case "command:media.next":
+                await mediaSessionService.GoNextAsync(cancellationToken);
+                break;
+            case "command:media.shuffle":
+                var shuffle = DeserializePayload<MediaShufflePayload>(command);
+                await mediaSessionService.SetShuffleAsync(
+                    shuffle.IsActive,
+                    cancellationToken);
+                break;
+            case "command:media.seek":
+                var seek = DeserializePayload<MediaSeekPayload>(command);
+                await mediaSessionService.SeekAsync(seek.PositionSeconds, cancellationToken);
+                break;
+            case "command:system.ready":
+                break;
+            default:
+                Debug.WriteLine($"Ignoring unknown UI command: {command.Type}");
+                break;
+        }
+    }
+
+    private static TPayload DeserializePayload<TPayload>(UiToHostMessage command)
+    {
+        if (command.Payload is not { } payload)
+        {
+            throw new JsonException($"Command {command.Type} requires a payload.");
+        }
+
+        return payload.Deserialize<TPayload>(MessageJson.Options) ??
+            throw new JsonException($"Command {command.Type} has an invalid payload.");
     }
 
     private async Task RunTelemetryLoopAsync(CancellationToken cancellationToken)
@@ -164,8 +439,21 @@ public partial class MainWindow : Window
             {
                 try
                 {
-                    var snapshot = await telemetryService.GetSnapshotAsync(cancellationToken);
-                    PostStateUpdate(snapshot);
+                    var telemetryTask = telemetryService.GetSnapshotAsync(cancellationToken);
+                    var mediaTask = mediaSessionService.GetCurrentSessionAsync(cancellationToken);
+                    var audioTask = audioDeviceService.GetOutputsAsync(cancellationToken);
+                    var weatherTask = weatherService.GetSnapshotAsync(cancellationToken);
+
+                    await Task.WhenAll(
+                        telemetryTask,
+                        mediaTask,
+                        audioTask,
+                        weatherTask);
+                    PostStateUpdate(
+                        telemetryTask.Result,
+                        mediaTask.Result,
+                        audioTask.Result,
+                        weatherTask.Result);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
@@ -180,7 +468,11 @@ public partial class MainWindow : Window
         }
     }
 
-    private void PostStateUpdate(HardwareTelemetrySnapshot telemetry)
+    private void PostStateUpdate(
+        HardwareTelemetrySnapshot telemetry,
+        MediaSummary media,
+        AudioSummary audio,
+        WeatherSummary weather)
     {
         var coreWebView = DashboardWebView.CoreWebView2;
         if (coreWebView is null || selectedDisplay is null)
@@ -188,7 +480,13 @@ public partial class MainWindow : Window
             return;
         }
 
-        var state = stateProvider.CreateState(telemetry, selectedDisplay);
+        var state = stateProvider.CreateState(
+            telemetry,
+            media,
+            audio,
+            weather,
+            settingsService.Appearance,
+            selectedDisplay);
         var message = new HostToUiMessage("state:update", state);
         var json = JsonSerializer.Serialize(message, MessageJson.Options);
         coreWebView.PostWebMessageAsJson(json);

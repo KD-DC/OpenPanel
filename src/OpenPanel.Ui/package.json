@@ -13,5 +13,8 @@
     "@types/node": "^22.13.0",
     "typescript": "^5.8.2",
     "vite": "^6.1.0"
+  },
+  "dependencies": {
+    "lucide": "^1.27.0"
   }
 }

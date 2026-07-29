@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920">
+  <title>OpenPanel - Media Stage OLED</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    :root {
+      --bg: #000;
+      --line: #202224;
+      --line-strong: #303336;
+      --text: #f5f7f7;
+      --muted: #777e82;
+      --green: #72eda5;
+      --blue: #72b6ff;
+      --yellow: #f2ca5e;
+      --red: #ff6f67;
+    }
+    .screen {
+      display: grid;
+      grid-template-columns: 292px 292px minmax(0, 1fr) 384px;
+      gap: 0;
+      padding: 12px;
+      background: var(--bg);
+    }
+    .metric-zone,
+    .media-zone,
+    .audio-zone {
+      min-width: 0;
+      border-right: 1px solid var(--line);
+      background: #000;
+    }
+    .metric-zone {
+      display: flex;
+      flex-direction: column;
+      padding: 18px 22px;
+    }
+    .zone-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+      text-transform: uppercase;
+    }
+    .metric-main {
+      margin-top: 35px;
+    }
+    .metric-main strong {
+      display: block;
+      font-size: 72px;
+      font-weight: 470;
+      line-height: .9;
+    }
+    .metric-main span {
+      display: block;
+      margin-top: 13px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .reading {
+      margin-top: 48px;
+    }
+    .reading.capacity {
+      margin-top: 52px;
+    }
+    .reading-head {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 11px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .reading-head strong {
+      color: var(--text);
+      font-weight: 560;
+    }
+    .line-meter {
+      position: relative;
+      height: 2px;
+      background: #242628;
+    }
+    .line-meter span {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: var(--value);
+      background: var(--accent);
+      box-shadow: 0 0 12px color-mix(in srgb, var(--accent), transparent 42%);
+    }
+    .metrics {
+      display: flex;
+      justify-content: space-between;
+      margin-top: auto;
+    }
+    .metrics span {
+      color: var(--muted);
+      font-size: 10px;
+    }
+    .metrics strong {
+      display: block;
+      margin-top: 7px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 560;
+    }
+    .media-zone {
+      position: relative;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      align-items: center;
+      gap: 30px;
+      overflow: hidden;
+      padding: 28px 34px;
+    }
+    .media-zone::after {
+      position: absolute;
+      z-index: 0;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(0, 0, 0, .2), rgba(0, 0, 0, .84) 78%),
+        linear-gradient(0deg, rgba(0, 0, 0, .58), transparent 70%);
+      content: "";
+    }
+    .media-backdrop {
+      position: absolute;
+      z-index: 0;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: .76;
+      object-fit: cover;
+      filter: saturate(.78) brightness(.55);
+      transform: scale(1.02);
+    }
+    .album-wrap {
+      position: relative;
+      z-index: 1;
+      width: 260px;
+      height: 260px;
+    }
+    .album-wrap::after {
+      position: absolute;
+      inset: auto 10% -18px;
+      height: 18px;
+      background: rgba(255, 111, 103, .22);
+      content: "";
+      filter: blur(18px);
+    }
+    .album-art {
+      position: relative;
+      z-index: 1;
+      width: 260px;
+      height: 260px;
+      border: 1px solid #282b2d;
+      border-radius: 3px;
+      filter: saturate(.88) contrast(1.08);
+    }
+    .track-copy {
+      position: relative;
+      z-index: 1;
+      min-width: 0;
+    }
+    .live {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 720;
+      text-transform: uppercase;
+    }
+    .live::before {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+      box-shadow: 0 0 10px currentColor;
+    }
+    .track-copy h1 {
+      margin: 22px 0 8px;
+      overflow: hidden;
+      font-size: 49px;
+      font-weight: 540;
+      line-height: .96;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .track-copy p {
+      margin: 0;
+      color: #b9bec0;
+      font-size: 19px;
+    }
+    .track-copy .album-name {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .progress {
+      margin-top: 39px;
+    }
+    .progress-time {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 24px;
+    }
+    .controls button {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 50%;
+      background: #000;
+      color: #b3b8ba;
+    }
+    .controls .play {
+      width: 56px;
+      height: 56px;
+      border: 0;
+      background: var(--text);
+      color: #000;
+    }
+    .controls .active {
+      border-color: rgba(114, 237, 165, .46);
+      color: var(--green);
+    }
+    .audio-zone {
+      display: flex;
+      flex-direction: column;
+      border-right: 0;
+      padding: 18px 20px 18px 26px;
+    }
+    .audio-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .audio-head strong {
+      font-size: 38px;
+      font-weight: 500;
+    }
+    .current-output {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      margin-top: 25px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 18px;
+      color: var(--yellow);
+    }
+    .current-output div {
+      min-width: 0;
+    }
+    .current-output span {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+    .current-output strong {
+      display: block;
+      margin-top: 4px;
+      color: var(--text);
+      font-size: 16px;
+    }
+    .outputs {
+      display: grid;
+      gap: 0;
+      margin-top: 9px;
+    }
+    .output {
+      display: grid;
+      min-height: 64px;
+      grid-template-columns: 36px minmax(0, 1fr) 8px;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .output.active {
+      color: var(--text);
+    }
+    .output.active svg {
+      color: var(--yellow);
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: transparent;
+    }
+    .output.active .status-dot {
+      background: var(--yellow);
+      box-shadow: 0 0 10px var(--yellow);
+    }
+    .volume-control {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      align-items: center;
+      gap: 14px;
+      margin-top: auto;
+    }
+    .volume-control button {
+      display: grid;
+      width: 48px;
+      height: 48px;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 50%;
+      background: #000;
+    }
+  </style>
+</head>
+<body>
+  <main class="screen">
+    <section class="metric-zone" style="--accent: var(--green)">
+      <span class="zone-title"><i data-lucide="cpu"></i>System</span>
+      <div class="metric-main"><strong>34%</strong><span>CPU load</span></div>
+      <div class="reading">
+        <div class="reading-head"><span>Current utilization</span><strong>34 of 100</strong></div>
+        <div class="line-meter" style="--value: 34%"><span></span></div>
+      </div>
+      <div class="reading capacity">
+        <div class="reading-head"><span>RAM</span><strong>21.4 / 64 GB</strong></div>
+        <div class="line-meter" style="--value: 33%"><span></span></div>
+      </div>
+      <div class="metrics">
+        <span>Temperature<strong>48 C</strong></span>
+        <span>Upload<strong>4.2 Mbps</strong></span>
+        <span>Download<strong>82.5 Mbps</strong></span>
+      </div>
+    </section>
+    <section class="metric-zone" style="--accent: var(--blue)">
+      <span class="zone-title"><i data-lucide="microchip"></i>Graphics</span>
+      <div class="metric-main"><strong>67%</strong><span>GPU load</span></div>
+      <div class="reading">
+        <div class="reading-head"><span>Current utilization</span><strong>67 of 100</strong></div>
+        <div class="line-meter" style="--value: 67%"><span></span></div>
+      </div>
+      <div class="reading capacity">
+        <div class="reading-head"><span>VRAM</span><strong>8.7 / 16 GB</strong></div>
+        <div class="line-meter" style="--value: 54%"><span></span></div>
+      </div>
+      <div class="metrics">
+        <span>Temperature<strong>61 C</strong></span>
+        <span>Power<strong>218 W</strong></span>
+        <span>Fans<strong>1480</strong></span>
+      </div>
+    </section>
+    <section class="media-zone">
+      <img class="media-backdrop" src="assets/fictional-album.png" alt="">
+      <div class="album-wrap"><img class="album-art" src="assets/fictional-album.png" alt=""></div>
+      <div class="track-copy">
+        <span class="live">Spotify playing</span>
+        <h1>Lazy Eye</h1>
+        <p>Silversun Pickups</p>
+        <p class="album-name">Carnavas</p>
+        <div class="progress">
+          <div class="line-meter" style="--value: 63%"><span style="background: var(--red)"></span></div>
+          <div class="progress-time"><span>3:42</span><span>5:54</span></div>
+        </div>
+        <div class="controls">
+          <button aria-label="Previous"><i data-lucide="skip-back"></i></button>
+          <button class="play" aria-label="Pause"><i data-lucide="pause"></i></button>
+          <button aria-label="Next"><i data-lucide="skip-forward"></i></button>
+          <button class="active" aria-label="Shuffle"><i data-lucide="shuffle"></i></button>
+        </div>
+      </div>
+    </section>
+    <section class="audio-zone">
+      <header class="audio-head"><span class="zone-title"><i data-lucide="audio-lines"></i>Audio</span><strong>42%</strong></header>
+      <div class="current-output"><i data-lucide="volume-2"></i><div><span>Current output</span><strong class="truncate">3 - ASUS PA147</strong></div></div>
+      <div class="outputs">
+        <div class="output"><i data-lucide="monitor-speaker"></i><span class="truncate">LG UltraGear+</span><span class="status-dot"></span></div>
+        <div class="output active"><i data-lucide="monitor-speaker"></i><span class="truncate">3 - ASUS PA147</span><span class="status-dot"></span></div>
+        <div class="output"><i data-lucide="headphones"></i><span class="truncate">Bose QC Ultra</span><span class="status-dot"></span></div>
+      </div>
+      <div class="volume-control"><button aria-label="Mute"><i data-lucide="volume-2"></i></button><div class="line-meter" style="--value: 42%"><span style="background: var(--yellow)"></span></div></div>
+    </section>
+  </main>
+  <script src="../../src/OpenPanel.Ui/node_modules/lucide/dist/umd/lucide.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

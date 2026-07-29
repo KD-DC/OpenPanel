@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920">
+  <title>OpenPanel - Precision Grid</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    :root {
+      --bg: #07090a;
+      --panel: #0d1113;
+      --line: #293136;
+      --muted: #89959b;
+      --cyan: #4de3d1;
+      --yellow: #f1cb58;
+      --red: #ff766d;
+    }
+    .screen {
+      display: grid;
+      grid-template-columns: 390px 390px 650px 1fr;
+      gap: 10px;
+      padding: 10px;
+      background:
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px),
+        var(--bg);
+      background-size: 28px 28px;
+    }
+    .panel {
+      position: relative;
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 20px;
+      background: rgba(13,17,19,.96);
+    }
+    .panel::before {
+      position: absolute;
+      top: -1px;
+      left: 20px;
+      width: 54px;
+      height: 2px;
+      background: var(--accent, var(--cyan));
+      content: "";
+    }
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 720;
+      text-transform: uppercase;
+    }
+    .label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hero-number {
+      margin-top: 26px;
+      font-size: 76px;
+      font-weight: 520;
+      line-height: .9;
+    }
+    .hero-number small {
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .scale {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 12px;
+      color: #657178;
+      font: 11px "Cascadia Mono", monospace;
+    }
+    .bar {
+      height: 9px;
+      margin-top: 7px;
+      border-radius: 1px;
+    }
+    .bar > span { background: var(--accent, var(--cyan)); }
+    .usage-row {
+      margin-top: 30px;
+    }
+    .row-head {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .row-head strong { color: #e9eef0; }
+    .readings {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      margin-top: auto;
+      background: var(--line);
+    }
+    .reading {
+      min-width: 0;
+      padding: 13px 10px;
+      background: #111719;
+    }
+    .reading span {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    .reading strong {
+      font: 700 16px "Cascadia Mono", monospace;
+    }
+    .media {
+      --accent: var(--red);
+      display: grid;
+      grid-template-columns: 206px minmax(0,1fr);
+      gap: 22px;
+    }
+    .album-art {
+      width: 206px;
+      height: 206px;
+      align-self: center;
+      border: 1px solid #41494d;
+    }
+    .media-copy {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .source {
+      color: var(--red);
+      font: 700 12px "Cascadia Mono", monospace;
+      text-transform: uppercase;
+    }
+    .media h1 {
+      margin: 12px 0 5px;
+      overflow: hidden;
+      font-size: 34px;
+      line-height: 1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .media p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+    }
+    .timeline {
+      margin-top: 30px;
+    }
+    .timeline-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 7px;
+      color: var(--muted);
+      font: 11px "Cascadia Mono", monospace;
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 24px;
+    }
+    .controls button {
+      display: grid;
+      width: 48px;
+      height: 48px;
+      place-items: center;
+      border: 1px solid #323b40;
+      border-radius: 3px;
+      background: #151b1e;
+    }
+    .controls .play {
+      border-color: var(--red);
+      background: var(--red);
+      color: #090a0b;
+    }
+    .controls .active { color: var(--cyan); }
+    .audio { --accent: var(--yellow); }
+    .volume {
+      margin: 22px 0 18px;
+      font-size: 62px;
+      font-weight: 520;
+      line-height: 1;
+    }
+    .volume small {
+      color: var(--muted);
+      font-size: 14px;
+      text-transform: uppercase;
+    }
+    .outputs {
+      display: grid;
+      gap: 8px;
+    }
+    .output {
+      display: flex;
+      min-height: 54px;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      padding: 0 13px;
+      background: #111619;
+      color: var(--muted);
+    }
+    .output.active {
+      border-color: var(--yellow);
+      color: #f5f0dc;
+    }
+    .output svg { color: var(--yellow); }
+    .audio-foot {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: auto;
+    }
+    .audio-foot .bar { flex: 1; margin: 0; }
+    .audio-foot button {
+      width: 46px;
+      height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background: #151b1e;
+    }
+  </style>
+</head>
+<body>
+  <main class="screen">
+    <section class="panel" style="--accent:var(--cyan)">
+      <header class="panel-head"><span class="label"><i data-lucide="cpu"></i>System</span><span>CPU.01</span></header>
+      <div class="hero-number">34<small>% LOAD</small></div>
+      <div class="scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+      <div class="bar"><span style="width:34%"></span></div>
+      <div class="usage-row">
+        <div class="row-head"><span>RAM allocation</span><strong>21.4 / 64 GB</strong></div>
+        <div class="bar"><span style="width:33%"></span></div>
+      </div>
+      <div class="readings">
+        <div class="reading"><span>Temp</span><strong>48 C</strong></div>
+        <div class="reading"><span>Upload</span><strong>4.2 M</strong></div>
+        <div class="reading"><span>Download</span><strong>82.5 M</strong></div>
+      </div>
+    </section>
+    <section class="panel" style="--accent:var(--yellow)">
+      <header class="panel-head"><span class="label"><i data-lucide="microchip"></i>Graphics</span><span>GPU.01</span></header>
+      <div class="hero-number">67<small>% LOAD</small></div>
+      <div class="scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+      <div class="bar"><span style="width:67%"></span></div>
+      <div class="usage-row">
+        <div class="row-head"><span>VRAM allocation</span><strong>8.7 / 16 GB</strong></div>
+        <div class="bar"><span style="width:54%"></span></div>
+      </div>
+      <div class="readings">
+        <div class="reading"><span>Temp</span><strong>61 C</strong></div>
+        <div class="reading"><span>Power</span><strong>218 W</strong></div>
+        <div class="reading"><span>Fans</span><strong>1480</strong></div>
+      </div>
+    </section>
+    <section class="panel media">
+      <img class="album-art" src="assets/fictional-album.png" alt="">
+      <div class="media-copy">
+        <span class="source">Spotify / Playing</span>
+        <h1>Lazy Eye</h1>
+        <p>Silversun Pickups</p>
+        <div class="timeline">
+          <div class="bar"><span style="width:63%;background:var(--red)"></span></div>
+          <div class="timeline-labels"><span>03:42</span><span>05:54</span></div>
+        </div>
+        <div class="controls">
+          <button aria-label="Previous"><i data-lucide="skip-back"></i></button>
+          <button class="play" aria-label="Pause"><i data-lucide="pause"></i></button>
+          <button aria-label="Next"><i data-lucide="skip-forward"></i></button>
+          <button class="active" aria-label="Shuffle"><i data-lucide="shuffle"></i></button>
+        </div>
+      </div>
+    </section>
+    <section class="panel audio">
+      <header class="panel-head"><span class="label"><i data-lucide="audio-lines"></i>Audio</span><span>OUT.02</span></header>
+      <div class="volume">42<small>% volume</small></div>
+      <div class="outputs">
+        <div class="output"><i data-lucide="monitor-speaker"></i><span class="truncate">LG UltraGear+</span></div>
+        <div class="output active"><i data-lucide="monitor-speaker"></i><span class="truncate">3 - ASUS PA147</span></div>
+        <div class="output"><i data-lucide="headphones"></i><span class="truncate">Bose QC Ultra</span></div>
+      </div>
+      <div class="audio-foot">
+        <button aria-label="Mute"><i data-lucide="volume-2"></i></button>
+        <div class="bar"><span style="width:42%;background:var(--yellow)"></span></div>
+      </div>
+    </section>
+  </main>
+  <script src="../../src/OpenPanel.Ui/node_modules/lucide/dist/umd/lucide.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

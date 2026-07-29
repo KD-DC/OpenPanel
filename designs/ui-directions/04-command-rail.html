@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920">
+  <title>OpenPanel - Command Rail</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    :root {
+      --bg: #07090c;
+      --panel: #10141a;
+      --panel-2: #151a21;
+      --line: #282f38;
+      --muted: #8f9aa6;
+      --green: #44daa8;
+      --blue: #5da7ff;
+      --amber: #f0b94f;
+      --red: #f46e72;
+    }
+    .screen {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      background: var(--bg);
+    }
+    .rail {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border-right: 1px solid var(--line);
+      padding: 18px 0;
+      background: #0b0e12;
+    }
+    .brand {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border: 1px solid var(--green);
+      border-radius: 6px;
+      color: var(--green);
+      font-weight: 800;
+    }
+    .rail-nav {
+      display: grid;
+      gap: 10px;
+      margin-top: 34px;
+    }
+    .rail button {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      place-items: center;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: #687582;
+    }
+    .rail button.active {
+      background: #173229;
+      color: var(--green);
+    }
+    .rail .settings { margin-top: auto; }
+    .workspace {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.42fr 1.2fr;
+      grid-template-rows: 38px 1fr;
+      gap: 10px;
+      padding: 10px 12px 12px;
+    }
+    .topbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .topbar strong {
+      color: #f2f5f7;
+      font-size: 15px;
+    }
+    .health {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .health::before {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      content: "";
+    }
+    .module {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 18px;
+      background: var(--panel);
+    }
+    .module-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .module-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .tag {
+      border-radius: 3px;
+      padding: 4px 7px;
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 10px;
+    }
+    .load {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 26px;
+    }
+    .load strong {
+      font-size: 64px;
+      font-weight: 560;
+      line-height: 1;
+    }
+    .load span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .sparkline {
+      display: flex;
+      height: 88px;
+      align-items: end;
+      gap: 3px;
+      margin-top: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    .sparkline span {
+      flex: 1;
+      min-height: 6px;
+      border-radius: 2px 2px 0 0;
+      background: color-mix(in srgb, var(--accent), #20252b 52%);
+    }
+    .usage {
+      margin-top: 24px;
+    }
+    .usage-head {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .usage-head strong { color: #eff3f5; }
+    .bar {
+      height: 8px;
+      border-radius: 2px;
+    }
+    .bar span {
+      border-radius: inherit;
+      background: var(--accent);
+    }
+    .module-foot {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 8px;
+      margin-top: auto;
+    }
+    .module-foot div {
+      min-width: 0;
+      border-radius: 4px;
+      padding: 10px;
+      background: var(--panel-2);
+    }
+    .module-foot span {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+    .module-foot strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+    .media-module {
+      display: grid;
+      grid-template-columns: 190px minmax(0,1fr);
+      align-items: center;
+      gap: 22px;
+    }
+    .media-module .album-art {
+      width: 190px;
+      height: 190px;
+      border-radius: 5px;
+    }
+    .media-copy { min-width: 0; }
+    .media-source {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--red);
+      font-size: 11px;
+      font-weight: 720;
+      text-transform: uppercase;
+    }
+    .media-module h1 {
+      margin: 13px 0 5px;
+      overflow: hidden;
+      font-size: 36px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .media-module p {
+      margin: 0;
+      color: var(--muted);
+    }
+    .track-progress { margin-top: 29px; }
+    .track-time {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+    .transport {
+      display: flex;
+      gap: 8px;
+      margin-top: 18px;
+    }
+    .transport button {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: var(--panel-2);
+    }
+    .transport .play {
+      border-color: var(--green);
+      background: var(--green);
+      color: #07110c;
+    }
+    .transport .active { color: var(--green); }
+    .audio-module { padding: 18px; }
+    .master {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 24px 0 20px;
+    }
+    .master strong {
+      font-size: 48px;
+      font-weight: 560;
+    }
+    .master button {
+      width: 46px;
+      height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: var(--panel-2);
+    }
+    .devices {
+      display: grid;
+      gap: 7px;
+    }
+    .device {
+      display: grid;
+      min-height: 58px;
+      grid-template-columns: 34px minmax(0,1fr) 24px;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      padding: 0 11px;
+      background: var(--panel-2);
+      color: var(--muted);
+    }
+    .device.active {
+      border-color: var(--amber);
+      color: #f0f3f4;
+    }
+    .device .signal { color: var(--amber); }
+    .level {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      align-items: center;
+      gap: 10px;
+      margin-top: auto;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main class="screen">
+    <aside class="rail">
+      <div class="brand">OP</div>
+      <nav class="rail-nav" aria-label="Dashboard pages">
+        <button class="active" aria-label="Overview"><i data-lucide="layout-dashboard"></i></button>
+        <button aria-label="Telemetry"><i data-lucide="activity"></i></button>
+        <button aria-label="Storage"><i data-lucide="hard-drive"></i></button>
+      </nav>
+      <button class="settings" aria-label="Settings"><i data-lucide="settings"></i></button>
+    </aside>
+    <section class="workspace">
+      <header class="topbar"><strong>Overview</strong><span class="health">All systems nominal</span><span>PA147CDV / 1920 x 550</span></header>
+      <article class="module" style="--accent:var(--green)">
+        <header class="module-head"><span class="module-title"><i data-lucide="cpu"></i>System</span><span class="tag">CPU</span></header>
+        <div class="load"><strong>34%</strong><span>current load</span></div>
+        <div class="sparkline" aria-hidden="true"><span style="height:22%"></span><span style="height:31%"></span><span style="height:27%"></span><span style="height:44%"></span><span style="height:38%"></span><span style="height:51%"></span><span style="height:41%"></span><span style="height:35%"></span><span style="height:47%"></span><span style="height:34%"></span></div>
+        <div class="usage"><div class="usage-head"><span>Memory</span><strong>21.4 / 64 GB</strong></div><div class="bar"><span style="width:33%"></span></div></div>
+        <footer class="module-foot"><div><span>Temp</span><strong>48 C</strong></div><div><span>Up</span><strong>4.2 M</strong></div><div><span>Down</span><strong>82.5 M</strong></div></footer>
+      </article>
+      <article class="module" style="--accent:var(--blue)">
+        <header class="module-head"><span class="module-title"><i data-lucide="microchip"></i>Graphics</span><span class="tag">GPU</span></header>
+        <div class="load"><strong>67%</strong><span>current load</span></div>
+        <div class="sparkline" aria-hidden="true"><span style="height:48%"></span><span style="height:56%"></span><span style="height:62%"></span><span style="height:58%"></span><span style="height:70%"></span><span style="height:65%"></span><span style="height:74%"></span><span style="height:69%"></span><span style="height:72%"></span><span style="height:67%"></span></div>
+        <div class="usage"><div class="usage-head"><span>Video memory</span><strong>8.7 / 16 GB</strong></div><div class="bar"><span style="width:54%"></span></div></div>
+        <footer class="module-foot"><div><span>Temp</span><strong>61 C</strong></div><div><span>Power</span><strong>218 W</strong></div><div><span>Fans</span><strong>1480</strong></div></footer>
+      </article>
+      <article class="module media-module">
+        <img class="album-art" src="assets/fictional-album.png" alt="">
+        <div class="media-copy">
+          <span class="media-source"><i data-lucide="audio-lines"></i>Spotify playing</span>
+          <h1>Lazy Eye</h1>
+          <p>Silversun Pickups</p>
+          <div class="track-progress"><div class="bar"><span style="width:63%;background:var(--red)"></span></div><div class="track-time"><span>3:42</span><span>5:54</span></div></div>
+          <div class="transport">
+            <button aria-label="Previous"><i data-lucide="skip-back"></i></button>
+            <button class="play" aria-label="Pause"><i data-lucide="pause"></i></button>
+            <button aria-label="Next"><i data-lucide="skip-forward"></i></button>
+            <button class="active" aria-label="Shuffle"><i data-lucide="shuffle"></i></button>
+          </div>
+        </div>
+      </article>
+      <article class="module audio-module">
+        <header class="module-head"><span class="module-title"><i data-lucide="audio-lines"></i>Audio routing</span><span class="tag">3 devices</span></header>
+        <div class="master"><strong>42%</strong><button aria-label="Mute"><i data-lucide="volume-2"></i></button></div>
+        <div class="devices">
+          <div class="device"><i data-lucide="monitor-speaker"></i><span class="truncate">LG UltraGear+</span></div>
+          <div class="device active"><i data-lucide="monitor-speaker"></i><span class="truncate">3 - ASUS PA147</span><i class="signal" data-lucide="audio-waveform"></i></div>
+          <div class="device"><i data-lucide="headphones"></i><span class="truncate">Bose QC Ultra</span></div>
+        </div>
+        <div class="level"><i data-lucide="volume-1"></i><div class="bar"><span style="width:42%;background:var(--amber)"></span></div></div>
+      </article>
+    </section>
+  </main>
+  <script src="../../src/OpenPanel.Ui/node_modules/lucide/dist/umd/lucide.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

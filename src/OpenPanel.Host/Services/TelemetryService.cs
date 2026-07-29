@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using LibreHardwareMonitor.Hardware;
 using OpenPanel.Host.Models;
@@ -14,12 +15,16 @@ public interface ITelemetryService
 public sealed class TelemetryService : ITelemetryService, IDisposable
 {
     private static readonly TimeSpan HardwareRetryInterval = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan StorageInterval = TimeSpan.FromSeconds(5);
 
     private readonly object syncRoot = new();
     private readonly NetworkThroughputSampler networkSampler = new();
 
     private Computer? computer;
     private DateTimeOffset nextHardwareOpenAttempt;
+    private DateTimeOffset nextStorageUpdate;
+    private StorageSummary storageSummary = new([]);
+    private bool storageInventoryLogged;
     private bool disposed;
 
     public Task<HardwareTelemetrySnapshot> GetSnapshotAsync(CancellationToken cancellationToken)
@@ -63,7 +68,9 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
                     MemoryTotalGb: memory.TotalGb,
                     NetworkUploadMbps: network.UploadMbps,
                     NetworkDownloadMbps: network.DownloadMbps),
-                TelemetrySensorSelector.SelectGpu(sensorReadings));
+                TelemetrySensorSelector.SelectGpu(sensorReadings),
+                TelemetrySensorSelector.SelectAdvanced(sensorReadings, memory),
+                storageSummary);
         }
     }
 
@@ -77,7 +84,9 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
         var candidate = new Computer
         {
             IsCpuEnabled = true,
-            IsGpuEnabled = true
+            IsGpuEnabled = true,
+            IsMemoryEnabled = true,
+            IsStorageEnabled = true
         };
 
         try
@@ -109,12 +118,85 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
         }
 
         var readings = new List<TelemetrySensorReading>();
+        if (DateTimeOffset.UtcNow >= nextStorageUpdate)
+        {
+            var currentStorageReadings = new List<TelemetrySensorReading>();
+            foreach (var storage in computer.Hardware.Where(
+                         hardware => hardware.HardwareType == HardwareType.Storage))
+            {
+                UpdateHardware(storage, currentStorageReadings);
+            }
+
+            var libreStorage = TelemetrySensorSelector.SelectStorage(currentStorageReadings);
+            storageSummary = libreStorage.Devices.Count > 0
+                ? libreStorage
+                : ReadStorageVolumes();
+            nextStorageUpdate = DateTimeOffset.UtcNow + StorageInterval;
+
+            if (!storageInventoryLogged)
+            {
+                storageInventoryLogged = true;
+                AppLog.Write(
+                    "storage.sensors",
+                    currentStorageReadings.Count == 0
+                        ? $"No supported Libre storage sensors; " +
+                          $"{storageSummary.Devices.Count} fixed-volume fallback(s)"
+                        : string.Join(
+                            " | ",
+                            currentStorageReadings
+                                .OrderBy(reading => reading.HardwareName)
+                                .ThenBy(reading => reading.SensorType)
+                                .ThenBy(reading => reading.Name)
+                                .Select(reading =>
+                                    $"{reading.HardwareName}/{reading.Name}/" +
+                                    $"{reading.SensorType}={reading.Value:F2}")));
+            }
+        }
+
         foreach (var hardware in computer.Hardware)
         {
-            UpdateHardware(hardware, readings);
+            if (hardware.HardwareType != HardwareType.Storage)
+            {
+                UpdateHardware(hardware, readings);
+            }
         }
 
         return readings;
+    }
+
+    private static StorageSummary ReadStorageVolumes()
+    {
+        var devices = new List<StorageDeviceSummary>();
+        foreach (var drive in DriveInfo.GetDrives())
+        {
+            try
+            {
+                if (drive.DriveType != DriveType.Fixed || !drive.IsReady || drive.TotalSize <= 0)
+                {
+                    continue;
+                }
+
+                var usedPercent =
+                    (drive.TotalSize - drive.TotalFreeSpace) / (double)drive.TotalSize * 100;
+                devices.Add(new StorageDeviceSummary(
+                    drive.Name.TrimEnd(Path.DirectorySeparatorChar),
+                    Math.Clamp(usedPercent, 0, 100),
+                    null,
+                    null,
+                    null,
+                    null));
+            }
+            catch (IOException)
+            {
+                // Removable or transient volumes may disappear during enumeration.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Skip volumes that are not readable by the current user.
+            }
+        }
+
+        return new StorageSummary(devices);
     }
 
     private static void UpdateHardware(
@@ -132,9 +214,11 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
 
         if (hardware.HardwareType is
             HardwareType.Cpu or
+            HardwareType.Memory or
             HardwareType.GpuNvidia or
             HardwareType.GpuAmd or
-            HardwareType.GpuIntel)
+            HardwareType.GpuIntel or
+            HardwareType.Storage)
         {
             foreach (var sensor in hardware.Sensors)
             {
@@ -148,7 +232,8 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
                     hardware.Identifier.ToString(),
                     sensor.Name,
                     sensor.SensorType,
-                    value));
+                    value,
+                    hardware.Name));
             }
         }
 
@@ -158,7 +243,7 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
         }
     }
 
-    private static MemoryStatus ReadMemoryStatus()
+    private static MemorySummary ReadMemoryStatus()
     {
         var status = new MemoryStatusEx
         {
@@ -172,8 +257,17 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
 
         const double bytesPerGigabyte = 1024d * 1024d * 1024d;
         var total = status.TotalPhysical / bytesPerGigabyte;
-        var used = (status.TotalPhysical - status.AvailablePhysical) / bytesPerGigabyte;
-        return new MemoryStatus(used, total);
+        var available = status.AvailablePhysical / bytesPerGigabyte;
+        var used = total - available;
+        var virtualTotal = status.TotalPageFile / bytesPerGigabyte;
+        var virtualUsed = (status.TotalPageFile - status.AvailablePageFile) / bytesPerGigabyte;
+        return new MemorySummary(
+            used,
+            available,
+            total,
+            status.MemoryLoad,
+            virtualUsed,
+            virtualTotal);
     }
 
     private void CloseComputer()
@@ -194,6 +288,9 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
         finally
         {
             computer = null;
+            storageSummary = new StorageSummary([]);
+            nextStorageUpdate = default;
+            storageInventoryLogged = false;
         }
     }
 
@@ -215,5 +312,4 @@ public sealed class TelemetryService : ITelemetryService, IDisposable
         public ulong AvailableExtendedVirtual;
     }
 
-    private readonly record struct MemoryStatus(double UsedGb, double TotalGb);
 }

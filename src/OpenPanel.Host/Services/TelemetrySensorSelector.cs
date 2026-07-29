@@ -8,7 +8,8 @@ internal readonly record struct TelemetrySensorReading(
     string HardwareId,
     string Name,
     SensorType SensorType,
-    double Value);
+    double Value,
+    string HardwareName = "");
 
 internal static class TelemetrySensorSelector
 {
@@ -31,6 +32,20 @@ internal static class TelemetrySensorSelector
     [
         "GPU Core",
         "GPU Temperature"
+    ];
+
+    private static readonly string[] CpuPowerNames =
+    [
+        "CPU Package",
+        "Package",
+        "CPU Cores"
+    ];
+
+    private static readonly string[] GpuPowerNames =
+    [
+        "GPU Power",
+        "GPU Package",
+        "GPU ASIC Power"
     ];
 
     public static double SelectCpuLoad(IEnumerable<TelemetrySensorReading> readings)
@@ -66,16 +81,11 @@ internal static class TelemetrySensorSelector
 
     public static GpuSummary SelectGpu(IEnumerable<TelemetrySensorReading> readings)
     {
-        var gpu = readings
-            .Where(reading => IsGpu(reading.HardwareType))
-            .GroupBy(reading => reading.HardwareId)
-            .OrderBy(group => GpuTypePriority(group.First().HardwareType))
-            .ThenByDescending(group => FindExact(group, "GPU Memory Total") ?? 0)
-            .FirstOrDefault();
+        var gpu = SelectPrimaryGpu(readings);
 
         if (gpu is null)
         {
-            return new GpuSummary(0, null, 0, 0);
+            return new GpuSummary(0, null, 0, 0, null, null);
         }
 
         var loadReadings = gpu.Where(reading => reading.SensorType == SensorType.Load);
@@ -102,7 +112,132 @@ internal static class TelemetrySensorSelector
             ClampPercent(load),
             temperature,
             Math.Max(0, memoryUsed ?? 0),
-            Math.Max(0, memoryTotal ?? 0));
+            Math.Max(0, memoryTotal ?? 0),
+            PositiveOrNull(FindPreferred(
+                gpu.Where(reading => reading.SensorType == SensorType.Power),
+                GpuPowerNames)),
+            gpu.Where(reading => reading.SensorType == SensorType.Fan)
+                .Select(reading => (double?)reading.Value)
+                .Max());
+    }
+
+    public static AdvancedTelemetrySummary SelectAdvanced(
+        IEnumerable<TelemetrySensorReading> readings,
+        MemorySummary memory)
+    {
+        var materialized = readings.ToArray();
+        var cpu = materialized.Where(reading => reading.HardwareType == HardwareType.Cpu);
+        var cpuCoreClocks = cpu
+            .Where(reading =>
+                reading.SensorType == SensorType.Clock &&
+                reading.Name.Contains("Core", StringComparison.OrdinalIgnoreCase) &&
+                reading.Value > 0)
+            .Select(reading => reading.Value)
+            .ToArray();
+        var gpu = SelectPrimaryGpu(materialized);
+
+        return new AdvancedTelemetrySummary(
+            SelectMemory(materialized, memory),
+            cpuCoreClocks.Length == 0 ? null : cpuCoreClocks.Average(),
+            PositiveOrNull(FindPreferred(
+                cpu.Where(reading => reading.SensorType == SensorType.Power),
+                CpuPowerNames)),
+            gpu is null ? null : PositiveOrNull(FindExactByType(gpu, "GPU Core", SensorType.Clock)),
+            gpu is null ? null : PositiveOrNull(FindExactByType(gpu, "GPU Memory", SensorType.Clock)),
+            gpu?.Where(reading => reading.SensorType == SensorType.Control)
+                .Select(reading => (double?)ClampPercent(reading.Value))
+                .Max(),
+            gpu is null ? null : FindPreferred(
+                gpu.Where(reading =>
+                    reading.SensorType == SensorType.Temperature &&
+                    IsValidTemperature(reading.Value)),
+                ["GPU Hot Spot", "GPU Hotspot"]),
+            gpu is null ? null : FindPreferred(
+                gpu.Where(reading =>
+                    reading.SensorType == SensorType.Temperature &&
+                    IsValidTemperature(reading.Value)),
+                ["GPU Memory Junction", "GPU Memory"]));
+    }
+
+    public static StorageSummary SelectStorage(
+        IEnumerable<TelemetrySensorReading> readings)
+    {
+        var devices = readings
+            .Where(reading => reading.HardwareType == HardwareType.Storage)
+            .GroupBy(reading => reading.HardwareId)
+            .Select(group =>
+            {
+                var deviceReadings = group.ToArray();
+                var usedPercent =
+                    FindExactByType(deviceReadings, "Used Space", SensorType.Load) ??
+                    FindExactByType(deviceReadings, "Used Space", SensorType.Level);
+                var activityPercent =
+                    FindExactByType(deviceReadings, "Total Activity", SensorType.Load);
+                var temperature = FindPreferred(
+                    deviceReadings.Where(reading =>
+                        reading.SensorType == SensorType.Temperature &&
+                        IsValidTemperature(reading.Value)),
+                    ["Temperature", "Drive Temperature", "Composite Temperature"]);
+                var readRate = FindExactByType(
+                    deviceReadings,
+                    "Read Rate",
+                    SensorType.Throughput);
+                var writeRate = FindExactByType(
+                    deviceReadings,
+                    "Write Rate",
+                    SensorType.Throughput);
+
+                return new StorageDeviceSummary(
+                    deviceReadings[0].HardwareName,
+                    usedPercent.HasValue ? ClampPercent(usedPercent.Value) : null,
+                    activityPercent.HasValue ? ClampPercent(activityPercent.Value) : null,
+                    temperature,
+                    BytesPerSecondToMegabytesPerSecond(readRate),
+                    BytesPerSecondToMegabytesPerSecond(writeRate));
+            })
+            .OrderBy(device => device.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return new StorageSummary(devices);
+    }
+
+    private static MemorySummary SelectMemory(
+        IEnumerable<TelemetrySensorReading> readings,
+        MemorySummary fallback)
+    {
+        var memory = readings
+            .Where(reading => reading.HardwareType == HardwareType.Memory)
+            .ToArray();
+        var used = PositiveOrNull(FindExactByType(memory, "Used Memory", SensorType.Data)) ??
+            fallback.UsedGb;
+        var available = PositiveOrNull(FindExactByType(memory, "Available Memory", SensorType.Data)) ??
+            fallback.AvailableGb;
+        var virtualUsed = PositiveOrNull(FindExactByType(memory, "Used Virtual Memory", SensorType.Data)) ??
+            fallback.VirtualUsedGb;
+        var virtualAvailable = PositiveOrNull(
+            FindExactByType(memory, "Available Virtual Memory", SensorType.Data));
+        var total = used + available;
+
+        return new MemorySummary(
+            used,
+            available,
+            total,
+            total > 0 ? ClampPercent(used / total * 100) : fallback.LoadPercent,
+            virtualUsed,
+            virtualAvailable.HasValue
+                ? virtualUsed + virtualAvailable.Value
+                : fallback.VirtualTotalGb);
+    }
+
+    private static IGrouping<string, TelemetrySensorReading>? SelectPrimaryGpu(
+        IEnumerable<TelemetrySensorReading> readings)
+    {
+        return readings
+            .Where(reading => IsGpu(reading.HardwareType))
+            .GroupBy(reading => reading.HardwareId)
+            .OrderBy(group => GpuTypePriority(group.First().HardwareType))
+            .ThenByDescending(group => FindExact(group, "GPU Memory Total") ?? 0)
+            .FirstOrDefault();
     }
 
     private static double? FindMemoryGigabytes(
@@ -158,6 +293,20 @@ internal static class TelemetrySensorSelector
         return null;
     }
 
+    private static double? FindExactByType(
+        IEnumerable<TelemetrySensorReading> readings,
+        string name,
+        SensorType sensorType)
+    {
+        return readings
+            .Where(reading => reading.SensorType == sensorType)
+            .Select(reading =>
+                string.Equals(reading.Name, name, StringComparison.OrdinalIgnoreCase)
+                    ? (double?)reading.Value
+                    : null)
+            .FirstOrDefault(value => value.HasValue);
+    }
+
     private static bool IsGpu(HardwareType hardwareType)
     {
         return hardwareType is
@@ -183,6 +332,16 @@ internal static class TelemetrySensorSelector
     private static bool IsValidTemperature(double value)
     {
         return value is > 0 and < 150;
+    }
+
+    private static double? BytesPerSecondToMegabytesPerSecond(double? value)
+    {
+        return value is >= 0 ? value / 1_000_000d : null;
+    }
+
+    private static double? PositiveOrNull(double? value)
+    {
+        return value is > 0 ? value : null;
     }
 
     private static double ClampPercent(double value)
