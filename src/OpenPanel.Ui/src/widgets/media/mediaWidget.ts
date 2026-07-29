@@ -33,6 +33,9 @@ export function renderMediaWidget(state: MediaSummary): string {
           <button type="button" data-command="media-previous" title="Previous" ${state.canGoPrevious ? "" : "disabled"}>Prev</button>
           <button type="button" data-command="media-toggle" title="Play or pause" ${state.canToggle ? "" : "disabled"}>${state.isPlaying ? "Pause" : "Play"}</button>
           <button type="button" data-command="media-next" title="Next" ${state.canGoNext ? "" : "disabled"}>Next</button>
+          ${state.canShuffle
+            ? `<button class="media-shuffle${state.isShuffleActive ? " is-active" : ""}" type="button" data-command="media-shuffle" title="${state.isShuffleActive ? "Turn shuffle off" : "Turn shuffle on"}" aria-label="${state.isShuffleActive ? "Turn shuffle off" : "Turn shuffle on"}" aria-pressed="${state.isShuffleActive === true}"><i data-lucide="shuffle"></i></button>`
+            : ""}
         </div>
       </div>
     </section>
@@ -64,9 +67,6 @@ function renderPlaybackDetails(state: MediaSummary): string {
   const details: string[] = [];
   if (state.playbackStatus && state.playbackStatus !== "Closed") {
     details.push(state.playbackStatus);
-  }
-  if (state.isShuffleActive === true) {
-    details.push("Shuffle");
   }
   if (state.repeatMode && state.repeatMode !== "None") {
     details.push(formatRepeatMode(state.repeatMode));

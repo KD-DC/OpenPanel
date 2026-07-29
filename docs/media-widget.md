@@ -14,6 +14,8 @@ The widget displays source, title, artist, album artwork, playback status, timel
 
 These fields come from the existing Windows media session snapshot. They add no dependency, network request, or polling loop. Optional fields remain hidden when a media application does not publish them.
 
+When the selected session reports shuffle control support, the widget shows a shuffle toggle. OpenPanel sends the requested state through Windows GSMTC and updates the active state from the next session snapshot. A rejected command is logged and leaves the displayed state unchanged.
+
 Artwork is limited to 2 MB, cached by track identity, and transmitted to WebView2 only on a track change or a 30-second refresh. The UI retains cached artwork between ordinary state updates.
 
 Applications that do not publish a Windows system media session appear as unavailable. Spotify and supported browsers normally expose sessions while media is loaded.

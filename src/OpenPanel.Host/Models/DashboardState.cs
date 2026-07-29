@@ -82,6 +82,7 @@ public sealed record MediaSummary(
     bool CanToggle,
     bool CanGoPrevious,
     bool CanGoNext,
+    bool CanShuffle,
     bool CanSeek);
 
 public sealed record AudioSummary(

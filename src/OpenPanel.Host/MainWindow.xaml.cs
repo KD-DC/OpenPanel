@@ -303,6 +303,12 @@ public partial class MainWindow : Window
             case "command:media.next":
                 await mediaSessionService.GoNextAsync(cancellationToken);
                 break;
+            case "command:media.shuffle":
+                var shuffle = DeserializePayload<MediaShufflePayload>(command);
+                await mediaSessionService.SetShuffleAsync(
+                    shuffle.IsActive,
+                    cancellationToken);
+                break;
             case "command:media.seek":
                 var seek = DeserializePayload<MediaSeekPayload>(command);
                 await mediaSessionService.SeekAsync(seek.PositionSeconds, cancellationToken);

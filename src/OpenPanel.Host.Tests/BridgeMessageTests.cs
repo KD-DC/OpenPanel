@@ -49,6 +49,7 @@ public sealed class BridgeMessageTests
             true,
             true,
             true,
+            true,
             true);
         var audio = new AudioSummary(
             "device-1",
@@ -82,8 +83,24 @@ public sealed class BridgeMessageTests
         StringAssert.Contains(json, "\"playbackStatus\":\"Playing\"");
         StringAssert.Contains(json, "\"isShuffleActive\":true");
         StringAssert.Contains(json, "\"repeatMode\":\"List\"");
+        StringAssert.Contains(json, "\"canShuffle\":true");
         StringAssert.Contains(json, "\"currentOutput\":\"Desk Speakers\"");
         StringAssert.Contains(json, "\"peakLevelPercent\":12");
+    }
+
+    [TestMethod]
+    public void MediaShuffleCommandDeserializesTypedPayload()
+    {
+        const string json =
+            """{"type":"command:media.shuffle","payload":{"isActive":true}}""";
+
+        var command = JsonSerializer.Deserialize<UiToHostMessage>(json, MessageJson.Options);
+        var payload = command?.Payload?.Deserialize<MediaShufflePayload>(MessageJson.Options);
+
+        Assert.IsNotNull(command);
+        Assert.AreEqual("command:media.shuffle", command.Type);
+        Assert.IsNotNull(payload);
+        Assert.IsTrue(payload.IsActive);
     }
 
     [TestMethod]

@@ -12,6 +12,7 @@ public interface IMediaSessionService
     Task TogglePlayPauseAsync(CancellationToken cancellationToken);
     Task GoPreviousAsync(CancellationToken cancellationToken);
     Task GoNextAsync(CancellationToken cancellationToken);
+    Task SetShuffleAsync(bool isActive, CancellationToken cancellationToken);
     Task SeekAsync(double positionSeconds, CancellationToken cancellationToken);
 }
 
@@ -100,6 +101,13 @@ public sealed class MediaSessionService : IMediaSessionService
             session => session.TrySkipNextAsync(),
             cancellationToken,
             MediaKeySender.Next);
+    }
+
+    public Task SetShuffleAsync(bool isActive, CancellationToken cancellationToken)
+    {
+        return RunCommandAsync(
+            session => session.TryChangeShuffleActiveAsync(isActive),
+            cancellationToken);
     }
 
     public Task SeekAsync(double positionSeconds, CancellationToken cancellationToken)
@@ -234,6 +242,7 @@ public sealed class MediaSessionService : IMediaSessionService
             controls.IsPlayPauseToggleEnabled,
             controls.IsPreviousEnabled,
             controls.IsNextEnabled,
+            controls.IsShuffleEnabled,
             controls.IsPlaybackPositionEnabled);
     }
 
@@ -307,6 +316,7 @@ public sealed class MediaSessionService : IMediaSessionService
             false,
             0,
             0,
+            false,
             false,
             false,
             false,

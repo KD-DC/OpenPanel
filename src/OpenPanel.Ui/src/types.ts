@@ -11,6 +11,7 @@ export interface UiToHostMessage<TPayload = unknown> {
     | "command:media.toggle"
     | "command:media.previous"
     | "command:media.next"
+    | "command:media.shuffle"
     | "command:media.seek"
     | "command:system.ready";
   payload?: TPayload;
@@ -99,6 +100,7 @@ export interface MediaSummary {
   canToggle: boolean;
   canGoPrevious: boolean;
   canGoNext: boolean;
+  canShuffle: boolean;
   canSeek: boolean;
 }
 

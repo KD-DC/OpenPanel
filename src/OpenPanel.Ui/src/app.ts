@@ -9,6 +9,7 @@ import {
   HardDrive,
   MemoryStick,
   Microchip,
+  Shuffle,
   Thermometer,
   Upload,
   Zap
@@ -77,6 +78,7 @@ export function renderDashboard(root: HTMLElement, state: DashboardState): void 
       HardDrive,
       MemoryStick,
       Microchip,
+      Shuffle,
       Thermometer,
       Upload,
       Zap
@@ -241,6 +243,14 @@ function bindCommands(root: HTMLElement): void {
       case "media-next":
         postCommand({ type: "command:media.next" });
         break;
+      case "media-shuffle": {
+        const button = target.closest<HTMLButtonElement>("[data-command]");
+        postCommand({
+          type: "command:media.shuffle",
+          payload: { isActive: button?.getAttribute("aria-pressed") !== "true" }
+        });
+        break;
+      }
     }
   });
 

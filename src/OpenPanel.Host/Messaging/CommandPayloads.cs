@@ -9,3 +9,5 @@ internal sealed record AudioVolumePayload(int VolumePercent);
 internal sealed record AudioMutePayload(bool IsMuted);
 
 internal sealed record MediaSeekPayload(double PositionSeconds);
+
+internal sealed record MediaShufflePayload(bool IsActive);

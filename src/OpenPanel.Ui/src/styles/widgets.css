@@ -259,7 +259,26 @@ meter {
 }
 
 .controls button {
-  min-inline-size: 92px;
+  min-inline-size: 0;
+  flex: 1 1 0;
+}
+
+.controls .media-shuffle {
+  display: grid;
+  min-inline-size: var(--touch-target);
+  flex: 0 0 var(--touch-target);
+  place-items: center;
+}
+
+.media-shuffle svg {
+  inline-size: 20px;
+  block-size: 20px;
+}
+
+.controls .media-shuffle.is-active {
+  border-color: var(--accent);
+  background: rgba(46, 211, 198, 0.18);
+  color: var(--accent);
 }
 
 .output-list {

@@ -59,6 +59,7 @@ export const initialState: DashboardState = {
     canToggle: false,
     canGoPrevious: false,
     canGoNext: false,
+    canShuffle: false,
     canSeek: false
   },
   audio: {
