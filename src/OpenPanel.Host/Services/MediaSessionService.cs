@@ -1,6 +1,7 @@
 using System.IO;
 using Windows.Media.Control;
 using Windows.Storage.Streams;
+using OpenPanel.Host.Interop.MediaKeys;
 using OpenPanel.Host.Models;
 
 namespace OpenPanel.Host.Services;
@@ -55,6 +56,13 @@ public sealed class MediaSessionService : IMediaSessionService
                 return;
             }
 
+            if (IsSpotify(session.SourceAppUserModelId))
+            {
+                MediaKeySender.PlayPause();
+                lastSourceAppId = session.SourceAppUserModelId;
+                return;
+            }
+
             var playbackStatus = session.GetPlaybackInfo().PlaybackStatus;
             var accepted = playbackStatus ==
                 GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing
@@ -82,14 +90,16 @@ public sealed class MediaSessionService : IMediaSessionService
     {
         return RunCommandAsync(
             session => session.TrySkipPreviousAsync(),
-            cancellationToken);
+            cancellationToken,
+            MediaKeySender.Previous);
     }
 
     public Task GoNextAsync(CancellationToken cancellationToken)
     {
         return RunCommandAsync(
             session => session.TrySkipNextAsync(),
-            cancellationToken);
+            cancellationToken,
+            MediaKeySender.Next);
     }
 
     public Task SeekAsync(double positionSeconds, CancellationToken cancellationToken)
@@ -102,7 +112,8 @@ public sealed class MediaSessionService : IMediaSessionService
 
     private async Task RunCommandAsync(
         Func<GlobalSystemMediaTransportControlsSession, Windows.Foundation.IAsyncOperation<bool>> command,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Action? spotifyCommand = null)
     {
         await gate.WaitAsync(cancellationToken);
         try
@@ -110,6 +121,14 @@ public sealed class MediaSessionService : IMediaSessionService
             var session = await SelectSessionAsync(cancellationToken);
             if (session is not null)
             {
+                if (spotifyCommand is not null &&
+                    IsSpotify(session.SourceAppUserModelId))
+                {
+                    spotifyCommand();
+                    lastSourceAppId = session.SourceAppUserModelId;
+                    return;
+                }
+
                 var accepted = await command(session);
                 if (!accepted)
                 {
@@ -243,6 +262,11 @@ public sealed class MediaSessionService : IMediaSessionService
     {
         return session.GetPlaybackInfo().PlaybackStatus ==
             GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+    }
+
+    private static bool IsSpotify(string sourceAppId)
+    {
+        return sourceAppId.Contains("spotify", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string FormatSource(string sourceAppId)

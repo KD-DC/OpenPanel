@@ -53,14 +53,31 @@ export function renderDashboard(root: HTMLElement, state: DashboardState): void 
 
 function updateWidget(root: HTMLElement, name: string, markup: string): void {
   const slot = root.querySelector<HTMLElement>(`[data-widget="${name}"]`);
-  if (
-    slot &&
-    slot.dataset.markup !== markup &&
-    !slot.contains(document.activeElement)
-  ) {
-    slot.innerHTML = markup;
-    slot.dataset.markup = markup;
+  if (!slot || slot.dataset.markup === markup) {
+    return;
   }
+
+  const activeElement = slot.contains(document.activeElement)
+    ? document.activeElement as HTMLElement
+    : null;
+  if (activeElement instanceof HTMLInputElement) {
+    return;
+  }
+
+  const focusedCommand = activeElement?.dataset.command;
+  const focusedOutputId = activeElement?.dataset.outputId;
+  slot.innerHTML = markup;
+  slot.dataset.markup = markup;
+
+  const replacement =
+    (focusedCommand
+      ? slot.querySelector<HTMLElement>(`[data-command="${focusedCommand}"]`)
+      : null) ??
+    (focusedOutputId
+      ? Array.from(slot.querySelectorAll<HTMLElement>("[data-output-id]"))
+          .find((element) => element.dataset.outputId === focusedOutputId)
+      : null);
+  replacement?.focus({ preventScroll: true });
 }
 
 function bindPager(root: HTMLElement): void {
