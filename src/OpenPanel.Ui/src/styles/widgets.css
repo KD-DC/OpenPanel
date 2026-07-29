@@ -167,7 +167,7 @@ meter {
   min-inline-size: 0;
   flex-direction: column;
   justify-content: center;
-  gap: 14px;
+  gap: 10px;
 }
 
 .media-copy h1 {
@@ -179,10 +179,43 @@ meter {
   white-space: nowrap;
 }
 
-.media-copy p {
+.media-artist {
   margin: 0;
   color: var(--text-secondary);
   font-size: 20px;
+}
+
+.media-metadata {
+  display: flex;
+  min-inline-size: 0;
+  gap: 8px;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-metadata span {
+  color: var(--panel-border);
+}
+
+.media-status {
+  display: flex;
+  min-inline-size: 0;
+  gap: 8px;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-status span {
+  color: var(--panel-border);
 }
 
 .progress,

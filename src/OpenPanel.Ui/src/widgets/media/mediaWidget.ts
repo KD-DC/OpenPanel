@@ -4,6 +4,8 @@ export function renderMediaWidget(state: MediaSummary): string {
   const artwork = state.artworkDataUrl
     ? `<img src="${escapeHtml(state.artworkDataUrl)}" alt="">`
     : `<span>OP</span>`;
+  const metadata = renderMetadata(state);
+  const playbackDetails = renderPlaybackDetails(state);
 
   return `
     <section class="widget widget-media" aria-label="Media">
@@ -11,7 +13,8 @@ export function renderMediaWidget(state: MediaSummary): string {
       <div class="media-copy">
         <span class="widget__eyebrow">${escapeHtml(state.source)}</span>
         <h1>${escapeHtml(state.title)}</h1>
-        <p>${escapeHtml(state.artist || "No artist")}</p>
+        <p class="media-artist">${escapeHtml(state.artist || state.albumArtist || "No artist")}</p>
+        ${metadata}
         <input
           class="media-progress"
           type="range"
@@ -25,6 +28,7 @@ export function renderMediaWidget(state: MediaSummary): string {
           <span>${formatTime(state.positionSeconds)}</span>
           <span>${formatTime(state.durationSeconds)}</span>
         </div>
+        ${playbackDetails}
         <div class="controls">
           <button type="button" data-command="media-previous" title="Previous" ${state.canGoPrevious ? "" : "disabled"}>Prev</button>
           <button type="button" data-command="media-toggle" title="Play or pause" ${state.canToggle ? "" : "disabled"}>${state.isPlaying ? "Pause" : "Play"}</button>
@@ -33,6 +37,63 @@ export function renderMediaWidget(state: MediaSummary): string {
       </div>
     </section>
   `;
+}
+
+function renderMetadata(state: MediaSummary): string {
+  const values: string[] = [];
+  if (state.album) {
+    values.push(state.album);
+  }
+  if (state.trackNumber > 0) {
+    const trackCount = state.albumTrackCount > 0 ? `/${state.albumTrackCount}` : "";
+    values.push(`Track ${state.trackNumber}${trackCount}`);
+  }
+  if (state.subtitle) {
+    values.push(state.subtitle);
+  }
+  if (state.genres.length > 0) {
+    values.push(state.genres.slice(0, 2).join(", "));
+  }
+
+  return values.length > 0
+    ? `<p class="media-metadata">${values.map(escapeHtml).join("<span aria-hidden=\"true\">&middot;</span>")}</p>`
+    : "";
+}
+
+function renderPlaybackDetails(state: MediaSummary): string {
+  const details: string[] = [];
+  if (state.playbackStatus && state.playbackStatus !== "Closed") {
+    details.push(state.playbackStatus);
+  }
+  if (state.isShuffleActive === true) {
+    details.push("Shuffle");
+  }
+  if (state.repeatMode && state.repeatMode !== "None") {
+    details.push(formatRepeatMode(state.repeatMode));
+  }
+  if (state.playbackRate !== null && Math.abs(state.playbackRate - 1) > 0.01) {
+    details.push(`${state.playbackRate.toFixed(2).replace(/0+$/, "").replace(/\.$/, "")}x`);
+  }
+  if (state.playbackType && state.playbackType !== "Unknown") {
+    details.push(state.playbackType);
+  }
+
+  return details.length > 0
+    ? `<p class="media-status" aria-label="Playback details">${details
+        .map(escapeHtml)
+        .join("<span aria-hidden=\"true\">&middot;</span>")}</p>`
+    : "";
+}
+
+function formatRepeatMode(value: string): string {
+  switch (value) {
+    case "Track":
+      return "Repeat one";
+    case "List":
+      return "Repeat all";
+    default:
+      return `Repeat ${value.toLowerCase()}`;
+  }
 }
 
 function formatTime(seconds: number): string {

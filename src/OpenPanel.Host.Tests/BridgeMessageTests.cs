@@ -32,6 +32,16 @@ public sealed class BridgeMessageTests
             "Test Track",
             "Test Artist",
             "Test Album",
+            "Test Album Artist",
+            "Test Subtitle",
+            ["Electronic"],
+            4,
+            12,
+            "Playing",
+            "Music",
+            true,
+            "List",
+            1,
             null,
             true,
             30,
@@ -66,6 +76,12 @@ public sealed class BridgeMessageTests
         StringAssert.Contains(json, "\"usedPercent\":62");
         StringAssert.Contains(json, "\"readMegabytesPerSecond\":128.5");
         StringAssert.Contains(json, "\"title\":\"Test Track\"");
+        StringAssert.Contains(json, "\"albumArtist\":\"Test Album Artist\"");
+        StringAssert.Contains(json, "\"genres\":[\"Electronic\"]");
+        StringAssert.Contains(json, "\"trackNumber\":4");
+        StringAssert.Contains(json, "\"playbackStatus\":\"Playing\"");
+        StringAssert.Contains(json, "\"isShuffleActive\":true");
+        StringAssert.Contains(json, "\"repeatMode\":\"List\"");
         StringAssert.Contains(json, "\"currentOutput\":\"Desk Speakers\"");
         StringAssert.Contains(json, "\"peakLevelPercent\":12");
     }

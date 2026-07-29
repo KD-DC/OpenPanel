@@ -82,6 +82,16 @@ export interface MediaSummary {
   title: string;
   artist: string;
   album: string;
+  albumArtist: string;
+  subtitle: string;
+  genres: string[];
+  trackNumber: number;
+  albumTrackCount: number;
+  playbackStatus: string;
+  playbackType: string;
+  isShuffleActive: boolean | null;
+  repeatMode: string;
+  playbackRate: number | null;
   artworkDataUrl: string | null;
   isPlaying: boolean;
   positionSeconds: number;
