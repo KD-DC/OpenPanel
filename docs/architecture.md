@@ -12,7 +12,7 @@ The host is a .NET 10 WPF app. It is responsible for:
 - Receiving typed commands from the dashboard UI.
 - Owning Windows-specific services.
 
-The first implementation only sends sample state. Telemetry, media, and audio services are stubs so the app shell can be tested before hardware-specific work begins.
+The host samples read-only CPU and GPU sensors through LibreHardwareMonitor. RAM and network rates use Windows and .NET APIs. The normalized snapshot is sent to the UI once per second. Media and audio services remain stubs.
 
 ## UI
 
@@ -41,4 +41,6 @@ UI-to-host command messages use a `command:*` type and optional payload. Command
 
 ## Resource Use
 
-The first UI avoids React and graphing libraries. The WPF layer does not poll hardware yet. Future services should use coarse update intervals, avoid repeated large payloads, and isolate Windows interop behind small interfaces.
+The UI avoids React and graphing libraries. Telemetry uses a single non-overlapping one-second loop, enables only CPU and GPU LibreHardwareMonitor categories, and performs sensor work away from the UI thread. Missing sensors are represented as null or zero rather than retried aggressively.
+
+Future services should keep coarse update intervals, avoid repeated large payloads, and isolate Windows interop behind small interfaces.

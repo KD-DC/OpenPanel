@@ -4,14 +4,15 @@
 
 OpenPanel is a Windows-first touchscreen dashboard for ultrawide secondary displays, starting with the ASUS ProArt PA147CDV at 1920 x 550.
 
-The first milestone establishes the app shell: a native WPF host, a WebView2 dashboard surface, a TypeScript UI, placeholder widgets, and typed host/UI messaging. Full hardware telemetry, media controls, and audio output switching are intentionally stubbed for now.
+OpenPanel currently includes a native WPF host, a WebView2 dashboard surface, a TypeScript UI, typed host/UI messaging, and live read-only system telemetry. Media controls and audio output switching remain intentionally stubbed.
 
 ## Current Acceptance Target
 
 - Launches as a Windows desktop app.
 - Opens a borderless 1920 x 550 dashboard window, preferring a connected display with that resolution.
-- Renders four placeholder widgets: System, GPU, Media, and Audio Output.
-- Sends a sample `state:update` message from the C# host to the TypeScript UI.
+- Renders four widgets: System, GPU, Media, and Audio Output.
+- Updates CPU, GPU, RAM, and network values from the host once per second.
+- Keeps media and audio controls as clearly labeled placeholders.
 
 ## Requirements
 
@@ -26,6 +27,7 @@ This repo is intended to be developed from native Windows tooling in `C:\dev\ope
 
 Runtime:
 
+- `LibreHardwareMonitorLib` for read-only CPU and GPU sensor access.
 - `Microsoft.Web.WebView2` for the embedded dashboard surface.
 
 Development:
@@ -35,7 +37,7 @@ Development:
 - `@types/node` for Vite's Node-based config types.
 - MSTest packages for the initial .NET test project.
 
-No telemetry, media, audio switching, graphing, or icon dependencies have been added yet.
+No media, audio switching, graphing, or icon dependencies have been added yet. See `NOTICE.md` for direct and transitive dependency details.
 
 ## Quick Start
 
@@ -69,7 +71,7 @@ src/OpenPanel.Ui/     TypeScript dashboard UI
 
 ## Known Limitations
 
-- The current telemetry, media, and audio data are sample placeholders.
+- CPU/GPU temperature and VRAM availability depend on the installed hardware, drivers, and Windows access permissions.
+- Media and audio data are placeholders.
 - The display chooser is automatic only: it prefers a 1920 x 550 screen, then falls back to the primary display.
 - WebView2 and Node/npm must be installed separately.
-- The local machine used to create this skeleton did not have the .NET SDK or Node.js on PATH, so build verification requires installing those prerequisites first.

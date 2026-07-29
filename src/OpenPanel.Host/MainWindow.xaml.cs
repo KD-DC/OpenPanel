@@ -6,17 +6,25 @@ using System.Windows;
 using System.Windows.Interop;
 using Microsoft.Web.WebView2.Core;
 using OpenPanel.Host.Messaging;
+using OpenPanel.Host.Models;
 using OpenPanel.Host.Services;
 
 namespace OpenPanel.Host;
 
 public partial class MainWindow : Window
 {
+    private static readonly TimeSpan TelemetryInterval = TimeSpan.FromSeconds(1);
+
     private const uint SwpNoActivate = 0x0010;
     private const uint SwpNoZOrder = 0x0004;
 
     private readonly DisplayService displayService = new();
     private readonly DashboardStateProvider stateProvider = new();
+    private readonly TelemetryService telemetryService = new();
+    private readonly CancellationTokenSource telemetryCancellation = new();
+
+    private DisplaySummary? selectedDisplay;
+    private Task? telemetryLoopTask;
 
     public MainWindow()
     {
@@ -25,7 +33,7 @@ public partial class MainWindow : Window
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        ApplyDashboardPlacement();
+        selectedDisplay = ApplyDashboardPlacement();
 
         try
         {
@@ -60,7 +68,21 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ApplyDashboardPlacement()
+    protected override void OnClosed(EventArgs e)
+    {
+        telemetryCancellation.Cancel();
+
+        if (DashboardWebView.CoreWebView2 is { } coreWebView)
+        {
+            coreWebView.WebMessageReceived -= OnWebMessageReceived;
+            coreWebView.NavigationCompleted -= OnNavigationCompleted;
+        }
+
+        telemetryService.Dispose();
+        base.OnClosed(e);
+    }
+
+    private DisplaySummary ApplyDashboardPlacement()
     {
         var target = displayService.SelectDashboardDisplay();
         WindowState = WindowState.Normal;
@@ -79,6 +101,7 @@ public partial class MainWindow : Window
         }
 
         Activate();
+        return target;
     }
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -115,7 +138,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        PostStateUpdate();
+        telemetryLoopTask ??= RunTelemetryLoopAsync(telemetryCancellation.Token);
     }
 
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
@@ -131,15 +154,42 @@ public partial class MainWindow : Window
         }
     }
 
-    private void PostStateUpdate()
+    private async Task RunTelemetryLoopAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TelemetryInterval);
+
+        try
+        {
+            do
+            {
+                try
+                {
+                    var snapshot = await telemetryService.GetSnapshotAsync(cancellationToken);
+                    PostStateUpdate(snapshot);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    Debug.WriteLine($"Telemetry snapshot failed: {ex.Message}");
+                }
+            }
+            while (await timer.WaitForNextTickAsync(cancellationToken));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Window shutdown cancels the loop.
+        }
+    }
+
+    private void PostStateUpdate(HardwareTelemetrySnapshot telemetry)
     {
         var coreWebView = DashboardWebView.CoreWebView2;
-        if (coreWebView is null)
+        if (coreWebView is null || selectedDisplay is null)
         {
             return;
         }
 
-        var message = new HostToUiMessage("state:update", stateProvider.CreateSampleState());
+        var state = stateProvider.CreateState(telemetry, selectedDisplay);
+        var message = new HostToUiMessage("state:update", state);
         var json = JsonSerializer.Serialize(message, MessageJson.Options);
         coreWebView.PostWebMessageAsJson(json);
     }

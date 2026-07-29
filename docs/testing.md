@@ -20,5 +20,8 @@ This type-checks the TypeScript UI and runs .NET tests.
 - Run `.\scripts\run.ps1`.
 - Confirm the OpenPanel window appears borderless on the ASUS display.
 - Confirm four widgets render: System, GPU, Media, Audio Output.
-- Confirm placeholder values update from the host sample state after load.
+- Confirm CPU, GPU, and RAM values are nonzero when the machine is active.
+- Create brief CPU or GPU activity and confirm utilization changes within two seconds.
+- Transfer data and confirm network upload/download values change after the first sample.
+- Confirm unavailable temperature or VRAM sensors render as `--` or zero without crashing.
 - Disconnect the ASUS and relaunch; confirm the window appears on the primary display.
