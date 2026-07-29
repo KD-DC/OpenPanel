@@ -11,16 +11,19 @@ export function renderAudioOutputWidget(state: AudioSummary): string {
       </div>
       <div class="output-list">
         ${outputs.length > 0
-          ? outputs.map((output) => `
+          ? outputs.map((output) => {
+              const status = outputStatus(output.isDefault, state.isMuted);
+              return `
               <button
                 type="button"
                 class="${output.isDefault ? "is-active" : ""}"
                 data-output-id="${escapeHtml(output.id)}"
                 title="${escapeHtml(output.name)}">
-                <span class="output-status" aria-hidden="true">${output.isDefault ? "ON" : ""}</span>
+                <span class="output-status" aria-hidden="true">${status}</span>
                 <span>${escapeHtml(output.name)}</span>
               </button>
-            `).join("")
+            `;
+            }).join("")
           : `<span class="empty-state">No active outputs</span>`}
       </div>
       <div class="audio-controls">
@@ -45,6 +48,14 @@ export function renderAudioOutputWidget(state: AudioSummary): string {
       </div>
     </section>
   `;
+}
+
+function outputStatus(isDefault: boolean, isMuted: boolean): string {
+  if (!isDefault) {
+    return "";
+  }
+
+  return isMuted ? "MUTE" : "ON";
 }
 
 function escapeHtml(value: string): string {

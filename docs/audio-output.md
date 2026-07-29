@@ -10,6 +10,7 @@ OpenPanel controls the global Windows playback output only. It does not perform 
 - Sets console and multimedia defaults with one tap.
 - Optionally sets the communications default at the same time.
 - Reads and changes endpoint master volume and mute.
+- Preserves each endpoint's Windows volume and mute state when switching, avoiding an unexpected loud output. The active endpoint button shows `MUTE` when that endpoint needs to be unmuted.
 - Reads the current endpoint peak level for the activity meter.
 - Treats endpoint removal and temporary Core Audio failures as normal unavailable states.
 - Continues refreshing the output list after a volume slider or communications checkbox receives focus; only an active press or drag defers replacement.
