@@ -8,6 +8,7 @@ public sealed class DashboardStateProvider
         HardwareTelemetrySnapshot telemetry,
         MediaSummary media,
         AudioSummary audio,
+        WeatherSummary weather,
         string appearance,
         DisplaySummary display)
     {
@@ -18,6 +19,7 @@ public sealed class DashboardStateProvider
             telemetry.Storage,
             media,
             audio,
+            weather,
             new AppearanceSummary(appearance),
             display);
     }

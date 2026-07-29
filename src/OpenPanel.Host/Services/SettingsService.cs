@@ -6,13 +6,21 @@ namespace OpenPanel.Host.Services;
 public interface ISettingsService
 {
     string Appearance { get; }
+    WeatherLocationSettings WeatherLocation { get; }
     Task SetAppearanceAsync(string appearance, CancellationToken cancellationToken);
 }
+
+public sealed record WeatherLocationSettings(
+    string Name,
+    double Latitude,
+    double Longitude);
 
 public sealed class SettingsService : ISettingsService
 {
     public const string CurrentAppearance = "current";
     public const string MediaOledAppearance = "mediaOled";
+    public static WeatherLocationSettings DefaultWeatherLocation { get; } =
+        new("Washington, DC", 38.9072, -77.0369);
 
     private static readonly JsonSerializerOptions JsonOptions =
         new(JsonSerializerDefaults.Web)
@@ -28,10 +36,17 @@ public sealed class SettingsService : ISettingsService
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "OpenPanel",
             "settings.json");
-        Appearance = LoadAppearance();
+        var settings = LoadSettings();
+        Appearance = IsSupportedAppearance(settings?.Appearance)
+            ? settings!.Appearance
+            : MediaOledAppearance;
+        WeatherLocation = IsValidWeatherLocation(settings?.WeatherLocation)
+            ? settings!.WeatherLocation!
+            : DefaultWeatherLocation;
     }
 
     public string Appearance { get; private set; }
+    public WeatherLocationSettings WeatherLocation { get; }
 
     public async Task SetAppearanceAsync(
         string appearance,
@@ -56,38 +71,34 @@ public sealed class SettingsService : ISettingsService
 
         var temporaryPath = settingsPath + ".tmp";
         var json = JsonSerializer.Serialize(
-            new PersistedSettings(appearance),
+            new PersistedSettings(appearance, WeatherLocation),
             JsonOptions);
         await File.WriteAllTextAsync(temporaryPath, json, cancellationToken);
         File.Move(temporaryPath, settingsPath, true);
         Appearance = appearance;
     }
 
-    private string LoadAppearance()
+    private PersistedSettings? LoadSettings()
     {
         try
         {
             if (!File.Exists(settingsPath))
             {
-                return MediaOledAppearance;
+                return null;
             }
 
             var json = File.ReadAllText(settingsPath);
-            var settings = JsonSerializer.Deserialize<PersistedSettings>(
+            return JsonSerializer.Deserialize<PersistedSettings>(
                 json,
                 JsonOptions);
-            var appearance = settings?.Appearance;
-            return IsSupportedAppearance(appearance)
-                ? appearance!
-                : MediaOledAppearance;
         }
         catch (JsonException)
         {
-            return MediaOledAppearance;
+            return null;
         }
         catch (IOException)
         {
-            return MediaOledAppearance;
+            return null;
         }
     }
 
@@ -96,5 +107,15 @@ public sealed class SettingsService : ISettingsService
         return appearance is CurrentAppearance or MediaOledAppearance;
     }
 
-    private sealed record PersistedSettings(string Appearance);
+    private static bool IsValidWeatherLocation(WeatherLocationSettings? location)
+    {
+        return location is not null &&
+            !string.IsNullOrWhiteSpace(location.Name) &&
+            location.Latitude is >= -90 and <= 90 &&
+            location.Longitude is >= -180 and <= 180;
+    }
+
+    private sealed record PersistedSettings(
+        string Appearance,
+        WeatherLocationSettings? WeatherLocation);
 }

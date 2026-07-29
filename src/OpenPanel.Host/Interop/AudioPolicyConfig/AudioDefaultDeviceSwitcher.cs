@@ -6,6 +6,16 @@ internal static class AudioDefaultDeviceSwitcher
 {
     public static void SetDefaultOutput(string deviceId, bool includeCommunications)
     {
+        SetDefaultEndpoint(deviceId, includeCommunications);
+    }
+
+    public static void SetDefaultInput(string deviceId)
+    {
+        SetDefaultEndpoint(deviceId, true);
+    }
+
+    private static void SetDefaultEndpoint(string deviceId, bool includeCommunications)
+    {
         var policyConfig = (IPolicyConfig)(object)new PolicyConfigClient();
         SetRole(policyConfig, deviceId, ERole.Console);
         SetRole(policyConfig, deviceId, ERole.Multimedia);

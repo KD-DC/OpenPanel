@@ -24,6 +24,7 @@ public sealed class SettingsServiceTests
         var service = CreateService();
 
         Assert.AreEqual(SettingsService.MediaOledAppearance, service.Appearance);
+        Assert.AreEqual("Washington, DC", service.WeatherLocation.Name);
     }
 
     [TestMethod]
@@ -61,6 +62,31 @@ public sealed class SettingsServiceTests
 
         await Assert.ThrowsExactlyAsync<ArgumentOutOfRangeException>(
             () => service.SetAppearanceAsync("unsupported", CancellationToken.None));
+    }
+
+    [TestMethod]
+    public void ValidWeatherLocationLoadsFromSettings()
+    {
+        var settingsPath = CreateSettingsPath();
+        Directory.CreateDirectory(Path.GetDirectoryName(settingsPath)!);
+        File.WriteAllText(
+            settingsPath,
+            """
+            {
+              "appearance": "mediaOled",
+              "weatherLocation": {
+                "name": "Baltimore, MD",
+                "latitude": 39.2904,
+                "longitude": -76.6122
+              }
+            }
+            """);
+
+        var service = new SettingsService(settingsPath);
+
+        Assert.AreEqual("Baltimore, MD", service.WeatherLocation.Name);
+        Assert.AreEqual(39.2904, service.WeatherLocation.Latitude);
+        Assert.AreEqual(-76.6122, service.WeatherLocation.Longitude);
     }
 
     private SettingsService CreateService()

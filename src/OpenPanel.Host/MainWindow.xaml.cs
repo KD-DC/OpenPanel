@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private readonly TelemetryService telemetryService = new();
     private readonly AudioDeviceService audioDeviceService = new();
     private readonly MediaSessionService mediaSessionService = new();
+    private readonly WeatherService weatherService;
     private readonly CancellationTokenSource telemetryCancellation = new();
     private readonly Forms.ContextMenuStrip trayMenu;
     private readonly Forms.ToolStripMenuItem currentAppearanceMenuItem;
@@ -38,6 +39,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        weatherService = new WeatherService(settingsService.WeatherLocation);
 
         trayMenu = new Forms.ContextMenuStrip();
         trayMenu.Items.Add("Open OpenPanel", null, OnTrayOpen);
@@ -72,6 +74,9 @@ public partial class MainWindow : Window
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         selectedDisplay = ApplyDashboardPlacement();
+        AppLog.Write(
+            "app.loaded",
+            $"{selectedDisplay.Name}; {selectedDisplay.Width}x{selectedDisplay.Height}");
 
         try
         {
@@ -294,10 +299,12 @@ public partial class MainWindow : Window
     {
         if (!e.IsSuccess)
         {
+            AppLog.Write("dashboard.navigation.failed", e.WebErrorStatus.ToString());
             Debug.WriteLine($"Dashboard navigation failed: {e.WebErrorStatus}");
             return;
         }
 
+        AppLog.Write("dashboard.navigation.completed", DashboardWebView.Source?.ToString() ?? "");
         telemetryLoopTask ??= RunTelemetryLoopAsync(telemetryCancellation.Token);
     }
 
@@ -347,6 +354,42 @@ public partial class MainWindow : Window
             case "command:audio.mute":
                 var mute = DeserializePayload<AudioMutePayload>(command);
                 await audioDeviceService.SetMutedAsync(mute.IsMuted, cancellationToken);
+                break;
+            case "command:audio.expanded":
+                var expanded = DeserializePayload<AudioExpandedPayload>(command);
+                audioDeviceService.SetExtendedState(expanded.IsExpanded);
+                break;
+            case "command:audio.input.select":
+                var inputSelect = DeserializePayload<AudioInputSelectPayload>(command);
+                await audioDeviceService.SelectInputAsync(
+                    inputSelect.InputId,
+                    cancellationToken);
+                break;
+            case "command:audio.input.volume":
+                var inputVolume = DeserializePayload<AudioInputVolumePayload>(command);
+                await audioDeviceService.SetInputVolumeAsync(
+                    inputVolume.VolumePercent,
+                    cancellationToken);
+                break;
+            case "command:audio.input.mute":
+                var inputMute = DeserializePayload<AudioInputMutePayload>(command);
+                await audioDeviceService.SetInputMutedAsync(
+                    inputMute.IsMuted,
+                    cancellationToken);
+                break;
+            case "command:audio.session.volume":
+                var sessionVolume = DeserializePayload<AudioSessionVolumePayload>(command);
+                await audioDeviceService.SetSessionVolumeAsync(
+                    sessionVolume.SessionId,
+                    sessionVolume.VolumePercent,
+                    cancellationToken);
+                break;
+            case "command:audio.session.mute":
+                var sessionMute = DeserializePayload<AudioSessionMutePayload>(command);
+                await audioDeviceService.SetSessionMutedAsync(
+                    sessionMute.SessionId,
+                    sessionMute.IsMuted,
+                    cancellationToken);
                 break;
             case "command:media.toggle":
                 await mediaSessionService.TogglePlayPauseAsync(cancellationToken);
@@ -399,12 +442,18 @@ public partial class MainWindow : Window
                     var telemetryTask = telemetryService.GetSnapshotAsync(cancellationToken);
                     var mediaTask = mediaSessionService.GetCurrentSessionAsync(cancellationToken);
                     var audioTask = audioDeviceService.GetOutputsAsync(cancellationToken);
+                    var weatherTask = weatherService.GetSnapshotAsync(cancellationToken);
 
-                    await Task.WhenAll(telemetryTask, mediaTask, audioTask);
+                    await Task.WhenAll(
+                        telemetryTask,
+                        mediaTask,
+                        audioTask,
+                        weatherTask);
                     PostStateUpdate(
                         telemetryTask.Result,
                         mediaTask.Result,
-                        audioTask.Result);
+                        audioTask.Result,
+                        weatherTask.Result);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
@@ -422,7 +471,8 @@ public partial class MainWindow : Window
     private void PostStateUpdate(
         HardwareTelemetrySnapshot telemetry,
         MediaSummary media,
-        AudioSummary audio)
+        AudioSummary audio,
+        WeatherSummary weather)
     {
         var coreWebView = DashboardWebView.CoreWebView2;
         if (coreWebView is null || selectedDisplay is null)
@@ -434,6 +484,7 @@ public partial class MainWindow : Window
             telemetry,
             media,
             audio,
+            weather,
             settingsService.Appearance,
             selectedDisplay);
         var message = new HostToUiMessage("state:update", state);

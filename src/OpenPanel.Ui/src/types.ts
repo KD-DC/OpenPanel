@@ -8,6 +8,12 @@ export interface UiToHostMessage<TPayload = unknown> {
     | "command:audio.select"
     | "command:audio.volume"
     | "command:audio.mute"
+    | "command:audio.expanded"
+    | "command:audio.input.select"
+    | "command:audio.input.volume"
+    | "command:audio.input.mute"
+    | "command:audio.session.volume"
+    | "command:audio.session.mute"
     | "command:media.toggle"
     | "command:media.previous"
     | "command:media.next"
@@ -24,6 +30,7 @@ export interface DashboardState {
   storage: StorageSummary;
   media: MediaSummary;
   audio: AudioSummary;
+  weather: WeatherSummary;
   appearance: AppearanceSummary;
   display: DisplaySummary;
 }
@@ -113,12 +120,72 @@ export interface AudioSummary {
   peakLevelPercent: number;
   setCommunicationsDevice: boolean;
   outputs: AudioOutputSummary[];
+  currentInputId: string | null;
+  currentInput: string;
+  inputVolumePercent: number;
+  isInputMuted: boolean;
+  inputPeakLevelPercent: number;
+  inputs: AudioInputSummary[];
+  sessions: AudioSessionSummary[];
 }
 
 export interface AudioOutputSummary {
   id: string;
   name: string;
   isDefault: boolean;
+}
+
+export interface AudioInputSummary {
+  id: string;
+  name: string;
+  isDefault: boolean;
+}
+
+export interface AudioSessionSummary {
+  id: string;
+  name: string;
+  volumePercent: number;
+  isMuted: boolean;
+  peakLevelPercent: number;
+}
+
+export interface WeatherSummary {
+  location: string;
+  isAvailable: boolean;
+  isStale: boolean;
+  status: string;
+  currentTemperatureFahrenheit: number | null;
+  apparentTemperatureFahrenheit: number | null;
+  humidityPercent: number | null;
+  windSpeedMph: number | null;
+  weatherCode: number | null;
+  hourly: HourlyForecastSummary[];
+  daily: DailyForecastSummary[];
+  airQuality: AirQualitySummary;
+  updatedAt: string | null;
+}
+
+export interface HourlyForecastSummary {
+  time: string;
+  temperatureFahrenheit: number | null;
+  weatherCode: number | null;
+  precipitationProbabilityPercent: number | null;
+}
+
+export interface DailyForecastSummary {
+  date: string;
+  highFahrenheit: number | null;
+  lowFahrenheit: number | null;
+  weatherCode: number | null;
+  precipitationProbabilityPercent: number | null;
+}
+
+export interface AirQualitySummary {
+  usAqi: number | null;
+  category: string;
+  pm25: number | null;
+  pm10: number | null;
+  ozone: number | null;
 }
 
 export interface AppearanceSummary {

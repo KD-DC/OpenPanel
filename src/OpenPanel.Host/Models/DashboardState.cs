@@ -7,6 +7,7 @@ public sealed record DashboardState(
     StorageSummary Storage,
     MediaSummary Media,
     AudioSummary Audio,
+    WeatherSummary Weather,
     AppearanceSummary Appearance,
     DisplaySummary Display);
 
@@ -93,12 +94,66 @@ public sealed record AudioSummary(
     bool IsMuted,
     int PeakLevelPercent,
     bool SetCommunicationsDevice,
-    IReadOnlyList<AudioOutputSummary> Outputs);
+    IReadOnlyList<AudioOutputSummary> Outputs,
+    string? CurrentInputId,
+    string CurrentInput,
+    int InputVolumePercent,
+    bool IsInputMuted,
+    int InputPeakLevelPercent,
+    IReadOnlyList<AudioInputSummary> Inputs,
+    IReadOnlyList<AudioSessionSummary> Sessions);
 
 public sealed record AudioOutputSummary(
     string Id,
     string Name,
     bool IsDefault);
+
+public sealed record AudioInputSummary(
+    string Id,
+    string Name,
+    bool IsDefault);
+
+public sealed record AudioSessionSummary(
+    string Id,
+    string Name,
+    int VolumePercent,
+    bool IsMuted,
+    int PeakLevelPercent);
+
+public sealed record WeatherSummary(
+    string Location,
+    bool IsAvailable,
+    bool IsStale,
+    string Status,
+    double? CurrentTemperatureFahrenheit,
+    double? ApparentTemperatureFahrenheit,
+    double? HumidityPercent,
+    double? WindSpeedMph,
+    int? WeatherCode,
+    IReadOnlyList<HourlyForecastSummary> Hourly,
+    IReadOnlyList<DailyForecastSummary> Daily,
+    AirQualitySummary AirQuality,
+    DateTimeOffset? UpdatedAt);
+
+public sealed record HourlyForecastSummary(
+    DateTime Time,
+    double? TemperatureFahrenheit,
+    int? WeatherCode,
+    double? PrecipitationProbabilityPercent);
+
+public sealed record DailyForecastSummary(
+    DateOnly Date,
+    double? HighFahrenheit,
+    double? LowFahrenheit,
+    int? WeatherCode,
+    double? PrecipitationProbabilityPercent);
+
+public sealed record AirQualitySummary(
+    double? UsAqi,
+    string Category,
+    double? Pm25,
+    double? Pm10,
+    double? Ozone);
 
 public sealed record AppearanceSummary(string Theme);
 

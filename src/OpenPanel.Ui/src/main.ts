@@ -2,6 +2,7 @@ import "./styles/tokens.css";
 import "./styles/layout.css";
 import "./styles/widgets.css";
 import "./styles/media-oled.css";
+import "./styles/environment.css";
 import { onHostMessage, startBridge } from "./bridge";
 import { renderDashboard } from "./app";
 import { initialState } from "./state/store";

@@ -4,6 +4,10 @@ import type {
   MediaSummary,
   TelemetrySummary
 } from "../../types";
+import {
+  renderAudioExpandedContent,
+  renderExpandButton
+} from "../audio-output/audioOutputWidget";
 
 export function renderOledSystemWidget(state: TelemetrySummary): string {
   const memoryPercent = percentage(state.memoryUsedGb, state.memoryTotalGb);
@@ -59,7 +63,22 @@ export function renderOledGpuWidget(state: GpuSummary): string {
   `;
 }
 
-export function renderOledMediaWidget(state: MediaSummary): string {
+export function renderOledHardwareWidget(
+  system: TelemetrySummary,
+  gpu: GpuSummary
+): string {
+  return `
+    <section class="oled-hardware" aria-label="System and graphics monitor">
+      ${renderOledSystemWidget(system)}
+      ${renderOledGpuWidget(gpu)}
+    </section>
+  `;
+}
+
+export function renderOledMediaWidget(
+  state: MediaSummary,
+  isCompact = false
+): string {
   const artwork = state.artworkDataUrl
     ? `
       <img class="oled-media__backdrop" src="${escapeHtml(state.artworkDataUrl)}" alt="">
@@ -77,9 +96,29 @@ export function renderOledMediaWidget(state: MediaSummary): string {
     ? state.source
     : `${state.source} ${state.isPlaying ? "playing" : state.playbackStatus.toLowerCase()}`;
 
+  if (isCompact) {
+    return `
+      <section class="oled-zone oled-media oled-media--compact" aria-label="Media">
+        ${artwork}
+        ${mediaSizeButton(true)}
+        <div class="oled-media-compact__copy">
+          <span class="oled-live${isIdle ? " is-idle" : ""}">${escapeHtml(sessionLabel)}</span>
+          <h1>${escapeHtml(state.title)}</h1>
+          <p>${escapeHtml(artist)}</p>
+        </div>
+        <div class="oled-media-compact__transport">
+          <button type="button" data-command="media-previous" title="Previous" aria-label="Previous" ${state.canGoPrevious ? "" : "disabled"}><i data-lucide="skip-back"></i></button>
+          <button type="button" data-command="media-toggle" title="${state.isPlaying ? "Pause" : "Play"}" aria-label="${state.isPlaying ? "Pause" : "Play"}" ${state.canToggle ? "" : "disabled"}><i data-lucide="${state.isPlaying ? "pause" : "play"}"></i></button>
+          <button type="button" data-command="media-next" title="Next" aria-label="Next" ${state.canGoNext ? "" : "disabled"}><i data-lucide="skip-forward"></i></button>
+        </div>
+      </section>
+    `;
+  }
+
   return `
     <section class="oled-zone oled-media" aria-label="Media">
       ${artwork}
+      ${mediaSizeButton(false)}
       <div class="oled-media__copy">
         <span class="oled-live${isIdle ? " is-idle" : ""}">${escapeHtml(sessionLabel)}</span>
         <h1>${escapeHtml(state.title)}</h1>
@@ -111,49 +150,71 @@ export function renderOledMediaWidget(state: MediaSummary): string {
   `;
 }
 
+function mediaSizeButton(isCompact: boolean): string {
+  return `
+    <button
+      class="media-size-toggle"
+      type="button"
+      data-command="media-size"
+      title="${isCompact ? "Expand media" : "Collapse media"}"
+      aria-label="${isCompact ? "Expand media" : "Collapse media"}"
+      aria-pressed="${!isCompact}">
+      <i data-lucide="${isCompact ? "maximize-2" : "minimize-2"}"></i>
+    </button>
+  `;
+}
+
 export function renderOledAudioWidget(state: AudioSummary): string {
   const outputs = state.outputs.slice(0, 5);
   return `
     <section class="oled-zone oled-audio" aria-label="Audio output">
       <header class="oled-audio__head">
         <span class="oled-title"><i data-lucide="audio-lines"></i>Audio</span>
-        <strong>${state.volumePercent}%</strong>
-      </header>
-      <div class="oled-audio__current">
-        <i data-lucide="volume-2"></i>
-        <div>
-          <span>Current output</span>
-          <strong>${escapeHtml(state.currentOutput)}</strong>
+        <div class="audio-center__heading">
+          <strong>${state.volumePercent}%</strong>
+          ${renderExpandButton()}
         </div>
-      </div>
-      <div class="oled-outputs">
-        ${outputs.length > 0
-          ? outputs.map((output) => {
-              const isActive =
-                output.id === state.currentOutputId || output.isDefault;
-              return `
-                <button
-                  type="button"
-                  class="oled-output${isActive ? " is-active" : ""}"
-                  data-output-id="${escapeHtml(output.id)}"
-                  title="${escapeHtml(output.name)}">
-                  <i data-lucide="${output.name.toLowerCase().includes("bose") ? "headphones" : "monitor-speaker"}"></i>
-                  <span>${escapeHtml(output.name)}</span>
-                  <span class="oled-output__dot" aria-hidden="true"></span>
-                </button>
-              `;
-            }).join("")
-          : `<span class="oled-audio__empty">No active outputs</span>`}
-      </div>
-      <div class="oled-volume">
-        <button type="button" data-command="audio-mute" title="${state.isMuted ? "Unmute" : "Mute"}" aria-label="${state.isMuted ? "Unmute" : "Mute"}" aria-pressed="${state.isMuted}"><i data-lucide="${state.isMuted ? "volume-x" : "volume-2"}"></i></button>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value="${state.volumePercent}"
-          data-command="audio-volume"
-          aria-label="Global volume">
+      </header>
+      <div class="audio-center__body">
+        <div class="audio-center__playback">
+          <div class="oled-audio__current">
+            <i data-lucide="volume-2"></i>
+            <div>
+              <span>Current output</span>
+              <strong>${escapeHtml(state.currentOutput)}</strong>
+            </div>
+          </div>
+          <div class="oled-outputs">
+            ${outputs.length > 0
+              ? outputs.map((output) => {
+                  const isActive =
+                    output.id === state.currentOutputId || output.isDefault;
+                  return `
+                    <button
+                      type="button"
+                      class="oled-output${isActive ? " is-active" : ""}"
+                      data-output-id="${escapeHtml(output.id)}"
+                      title="${escapeHtml(output.name)}">
+                      <i data-lucide="${output.name.toLowerCase().includes("bose") ? "headphones" : "monitor-speaker"}"></i>
+                      <span>${escapeHtml(output.name)}</span>
+                      <span class="oled-output__dot" aria-hidden="true"></span>
+                    </button>
+                  `;
+                }).join("")
+              : `<span class="oled-audio__empty">No active outputs</span>`}
+          </div>
+          <div class="oled-volume">
+            <button type="button" data-command="audio-mute" title="${state.isMuted ? "Unmute" : "Mute"}" aria-label="${state.isMuted ? "Unmute" : "Mute"}" aria-pressed="${state.isMuted}"><i data-lucide="${state.isMuted ? "volume-x" : "volume-2"}"></i></button>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value="${state.volumePercent}"
+              data-command="audio-volume"
+              aria-label="Global volume">
+          </div>
+        </div>
+        ${renderAudioExpandedContent(state)}
       </div>
     </section>
   `;

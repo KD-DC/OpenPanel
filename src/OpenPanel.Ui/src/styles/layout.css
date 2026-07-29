@@ -55,9 +55,10 @@ button:active {
 }
 
 .dashboard {
+  position: relative;
   flex: 0 0 var(--display-width, 1920px);
   display: grid;
-  grid-template-columns: 1fr 1fr 1.25fr 1.15fr;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 14px;
   block-size: var(--display-height, 550px);
   inline-size: var(--display-width, 1920px);
@@ -69,15 +70,15 @@ button:active {
   scroll-snap-stop: always;
 }
 
-.dashboard-page--advanced {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  background:
-    linear-gradient(90deg, rgba(240, 184, 79, 0.07), transparent 38%),
-    var(--panel-bg);
-}
-
 .widget-slot {
+  position: relative;
+  grid-column: span var(--widget-span, 3);
+  min-block-size: 0;
   min-inline-size: 0;
+  transition:
+    opacity 140ms ease,
+    outline-color 140ms ease,
+    transform 140ms ease;
 }
 
 .widget-slot > .widget {
@@ -107,4 +108,91 @@ button:active {
 
 .page-indicator__dot.is-active {
   background: var(--accent);
+}
+
+.manage-mode-bar {
+  position: absolute;
+  z-index: 8;
+  inset-block-start: 8px;
+  inset-inline-start: 50%;
+  display: none;
+  min-block-size: 44px;
+  align-items: center;
+  gap: 18px;
+  border: 1px solid color-mix(in srgb, var(--accent), transparent 35%);
+  border-radius: 6px;
+  padding: 5px 6px 5px 15px;
+  background: #101719;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+  color: #dce5e6;
+  transform: translateX(-50%);
+}
+
+.manage-mode-bar > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.manage-mode-bar svg {
+  inline-size: 19px;
+  block-size: 19px;
+}
+
+.manage-mode-bar button {
+  display: grid;
+  min-block-size: 34px;
+  min-inline-size: 38px;
+  place-items: center;
+  border-color: transparent;
+  padding: 0;
+  background: var(--accent);
+  color: #031311;
+}
+
+#app.is-managing .manage-mode-bar {
+  display: flex;
+}
+
+#app.is-managing .dashboard-pager {
+  overflow-x: hidden;
+  scroll-behavior: auto;
+  touch-action: none;
+  cursor: grabbing;
+}
+
+#app.is-managing .widget-slot {
+  z-index: 1;
+  border-radius: 7px;
+  outline: 2px solid color-mix(in srgb, var(--accent), transparent 18%);
+  outline-offset: -2px;
+  transform: scale(0.94);
+}
+
+#app.is-managing .widget-slot::after {
+  position: absolute;
+  z-index: 3;
+  inset-block-start: 10px;
+  inset-inline-start: 50%;
+  inline-size: 34px;
+  block-size: 8px;
+  border-radius: 4px;
+  background:
+    radial-gradient(circle, var(--accent) 2px, transparent 2.5px) 0 0 / 8px 8px;
+  content: "";
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+#app.is-managing .widget-slot > * {
+  pointer-events: none;
+}
+
+#app.is-managing .widget-slot.is-widget-dragging {
+  z-index: 2;
+  opacity: 0.58;
+  outline-color: #eef8f7;
+  transform: scale(0.9);
 }

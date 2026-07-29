@@ -69,7 +69,35 @@ export const initialState: DashboardState = {
     isMuted: false,
     peakLevelPercent: 0,
     setCommunicationsDevice: true,
-    outputs: []
+    outputs: [],
+    currentInputId: null,
+    currentInput: "Unavailable",
+    inputVolumePercent: 0,
+    isInputMuted: false,
+    inputPeakLevelPercent: 0,
+    inputs: [],
+    sessions: []
+  },
+  weather: {
+    location: "Washington, DC",
+    isAvailable: false,
+    isStale: false,
+    status: "Waiting for weather",
+    currentTemperatureFahrenheit: null,
+    apparentTemperatureFahrenheit: null,
+    humidityPercent: null,
+    windSpeedMph: null,
+    weatherCode: null,
+    hourly: [],
+    daily: [],
+    airQuality: {
+      usAqi: null,
+      category: "Unavailable",
+      pm25: null,
+      pm10: null,
+      ozone: null
+    },
+    updatedAt: null
   },
   appearance: {
     theme: "mediaOled"

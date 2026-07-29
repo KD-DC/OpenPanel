@@ -1,6 +1,13 @@
 import type { MediaSummary } from "../../types";
 
-export function renderMediaWidget(state: MediaSummary): string {
+export function renderMediaWidget(
+  state: MediaSummary,
+  isCompact = false
+): string {
+  if (isCompact) {
+    return renderCompactMediaWidget(state);
+  }
+
   const artwork = state.artworkDataUrl
     ? `<img src="${escapeHtml(state.artworkDataUrl)}" alt="">`
     : `<span>OP</span>`;
@@ -9,6 +16,7 @@ export function renderMediaWidget(state: MediaSummary): string {
 
   return `
     <section class="widget widget-media" aria-label="Media">
+      ${mediaSizeButton(false)}
       <div class="artwork" aria-hidden="true">${artwork}</div>
       <div class="media-copy">
         <span class="widget__eyebrow">${escapeHtml(state.source)}</span>
@@ -39,6 +47,40 @@ export function renderMediaWidget(state: MediaSummary): string {
         </div>
       </div>
     </section>
+  `;
+}
+
+function renderCompactMediaWidget(state: MediaSummary): string {
+  const artwork = state.artworkDataUrl
+    ? `<img src="${escapeHtml(state.artworkDataUrl)}" alt="">`
+    : `<span>OP</span>`;
+  return `
+    <section class="widget widget-media widget-media--compact" aria-label="Media">
+      ${mediaSizeButton(true)}
+      <div class="media-compact__art" aria-hidden="true">${artwork}</div>
+      <span class="widget__eyebrow">${escapeHtml(state.source)}</span>
+      <h1>${escapeHtml(state.title)}</h1>
+      <p>${escapeHtml(state.artist || state.albumArtist || "No artist")}</p>
+      <div class="media-compact__controls">
+        <button type="button" data-command="media-previous" title="Previous" aria-label="Previous" ${state.canGoPrevious ? "" : "disabled"}><i data-lucide="skip-back"></i></button>
+        <button type="button" data-command="media-toggle" title="${state.isPlaying ? "Pause" : "Play"}" aria-label="${state.isPlaying ? "Pause" : "Play"}" ${state.canToggle ? "" : "disabled"}><i data-lucide="${state.isPlaying ? "pause" : "play"}"></i></button>
+        <button type="button" data-command="media-next" title="Next" aria-label="Next" ${state.canGoNext ? "" : "disabled"}><i data-lucide="skip-forward"></i></button>
+      </div>
+    </section>
+  `;
+}
+
+function mediaSizeButton(isCompact: boolean): string {
+  return `
+    <button
+      class="media-size-toggle"
+      type="button"
+      data-command="media-size"
+      title="${isCompact ? "Expand media" : "Collapse media"}"
+      aria-label="${isCompact ? "Expand media" : "Collapse media"}"
+      aria-pressed="${!isCompact}">
+      <i data-lucide="${isCompact ? "maximize-2" : "minimize-2"}"></i>
+    </button>
   `;
 }
 

@@ -9,14 +9,11 @@
 }
 
 .dashboard-page--oled {
-  grid-template-columns: 292px 292px minmax(0, 1fr) 384px;
-  gap: 0;
-  padding: 12px;
   background: #000;
 }
 
 .dashboard-page--oled .widget-slot {
-  block-size: 100%;
+  min-block-size: 0;
 }
 
 .oled-zone {
@@ -137,6 +134,91 @@
   gap: 30px;
   overflow: hidden;
   padding: 28px 34px;
+}
+
+.dashboard-page--oled .widget-hardware {
+  border-color: var(--oled-line);
+  background: #000;
+  box-shadow: none;
+}
+
+.dashboard-page--oled .widget-hardware .hardware-load {
+  border-color: var(--oled-line);
+  background: #090b0c;
+}
+
+.dashboard-page--oled .widget-hardware .hardware-load > div > span,
+.dashboard-page--oled .widget-hardware .hardware-pane__usage > div > span {
+  background: var(--oled-green);
+}
+
+.oled-media .media-size-toggle {
+  border-color: var(--oled-line-strong);
+  background: rgba(0, 0, 0, 0.72);
+  color: var(--oled-muted);
+}
+
+.oled-media--compact {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 0;
+  padding: 22px;
+  text-align: center;
+}
+
+.oled-media--compact::after {
+  background: rgba(0, 0, 0, 0.66);
+}
+
+.oled-media--compact .oled-media__art-wrap {
+  inline-size: 170px;
+  block-size: 170px;
+  flex: 0 0 auto;
+  margin-block: 16px 20px;
+}
+
+.oled-media--compact .oled-media__art {
+  inline-size: 170px;
+  block-size: 170px;
+}
+
+.oled-media-compact__copy {
+  position: relative;
+  z-index: 1;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.oled-media.oled-media--compact h1 {
+  margin: 14px 0 7px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.oled-media--compact p {
+  font-size: 17px;
+}
+
+.oled-media-compact__transport {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-block-start: auto;
+}
+
+.oled-media-compact__transport button {
+  display: grid;
+  min-block-size: 48px;
+  min-inline-size: 48px;
+  place-items: center;
+  border: 1px solid var(--oled-line-strong);
+  border-radius: 50%;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.78);
+  color: #b3b8ba;
 }
 
 .oled-media::after {
@@ -328,9 +410,57 @@
   justify-content: space-between;
 }
 
-.oled-audio__head strong {
+.oled-audio__head .audio-center__heading > strong {
   font-size: 38px;
   font-weight: 500;
+}
+
+.oled-audio .audio-center__expand {
+  border-color: var(--oled-line-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--oled-muted);
+}
+
+.oled-audio .audio-center__playback {
+  overflow: hidden;
+}
+
+.widget-slot[data-widget="audio"][data-expanded="true"] > .oled-audio {
+  border-color: var(--oled-line-strong);
+  padding: 18px 24px;
+}
+
+.widget-slot[data-widget="audio"][data-expanded="true"] .audio-center__expanded {
+  border-color: var(--oled-line);
+}
+
+.oled-audio .audio-center__input-list button,
+.oled-audio .audio-center__input-controls > button,
+.oled-audio .audio-center__session button {
+  border-color: var(--oled-line-strong);
+  background: transparent;
+  color: var(--oled-muted);
+}
+
+.oled-audio .audio-center__input-list button.is-active {
+  border-color: rgba(240, 184, 79, 0.58);
+  background: rgba(240, 184, 79, 0.1);
+  color: var(--oled-yellow);
+}
+
+.oled-audio .audio-center__input-controls input,
+.oled-audio .audio-center__session input {
+  accent-color: var(--oled-yellow);
+}
+
+.oled-audio .audio-center__mic-meter span,
+.oled-audio .audio-center__session-activity {
+  background: var(--oled-yellow);
+}
+
+.oled-audio .audio-center__session {
+  border-color: var(--oled-line);
 }
 
 .oled-audio__current {
