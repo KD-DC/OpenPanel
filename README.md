@@ -153,7 +153,8 @@ Low background overhead is a primary project requirement.
   another hardware process.
 - A Windows Bluetooth device watcher requests an immediate refresh when a
   paired Bluetooth LE peripheral connects, changes, or disconnects; it does not
-  poll while the system is otherwise idle.
+  poll while the system is otherwise idle. A single delayed follow-up after a
+  connection gives exact GATT readings time to replace coarse Windows values.
 - Logitech HID++ devices that expose only four-level battery data are shown as
   `Full`, `Good`, `Low`, or `Critical` instead of a fabricated percentage.
 - Network quality sends one small ICMP probe per second only while its expanded

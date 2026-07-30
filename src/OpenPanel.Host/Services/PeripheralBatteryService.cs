@@ -15,9 +15,11 @@ public sealed class PeripheralBatteryService : IDisposable
     private readonly SemaphoreSlim gate = new(1, 1);
     private readonly LogitechHidBatteryReader logitechReader = new();
     private readonly LogitechOptionsBatteryReader logitechOptionsReader = new();
+    private readonly CancellationTokenSource watcherCancellation = new();
     private readonly DeviceWatcher? bluetoothWatcher;
     private PeripheralBatterySummary cached = new([], null);
     private DateTimeOffset nextRefresh;
+    private int delayedRefreshScheduled;
     private int refreshRequested = 1;
 
     public PeripheralBatteryService()
@@ -116,6 +118,7 @@ public sealed class PeripheralBatteryService : IDisposable
             }
         }
         logitechOptionsReader.Dispose();
+        watcherCancellation.Cancel();
         gate.Dispose();
     }
 
@@ -135,6 +138,13 @@ public sealed class PeripheralBatteryService : IDisposable
         {
             RequestRefresh();
         }
+        if (update.Properties.TryGetValue(
+                ConnectedProperty,
+                out var connected) &&
+            connected is true)
+        {
+            ScheduleDelayedRefresh();
+        }
     }
 
     private void OnBluetoothRemoved(
@@ -147,6 +157,32 @@ public sealed class PeripheralBatteryService : IDisposable
     private void RequestRefresh()
     {
         Interlocked.Exchange(ref refreshRequested, 1);
+    }
+
+    private void ScheduleDelayedRefresh()
+    {
+        if (Interlocked.Exchange(ref delayedRefreshScheduled, 1) != 0)
+        {
+            return;
+        }
+        _ = RequestDelayedRefreshAsync(watcherCancellation.Token);
+    }
+
+    private async Task RequestDelayedRefreshAsync(
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
+            RequestRefresh();
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            Interlocked.Exchange(ref delayedRefreshScheduled, 0);
+        }
     }
 
     private PeripheralBatterySummary WithOptionsBatteryReadings(
