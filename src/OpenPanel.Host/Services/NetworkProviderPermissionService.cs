@@ -26,6 +26,9 @@ internal static class NetworkProviderPermissionService
 
         try
         {
+            AppLog.Write(
+                "network.permission.requested",
+                $"exe={executablePath}");
             using var process = Process.Start(new ProcessStartInfo
             {
                 FileName = executablePath,

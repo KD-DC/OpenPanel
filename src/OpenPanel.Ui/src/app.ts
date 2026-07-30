@@ -287,7 +287,11 @@ function renderIcons(): void {
 
 function updateWidget(root: HTMLElement, name: string, markup: string): void {
   const slot = root.querySelector<HTMLElement>(`[data-widget="${name}"]`);
-  if (!slot || slot.dataset.markup === markup) {
+  if (
+    !slot ||
+    slot.dataset.markup === markup ||
+    slot.dataset.pointerActive === "true"
+  ) {
     return;
   }
 
@@ -665,6 +669,8 @@ function bindWidgetManagement(root: HTMLElement): void {
       return;
     }
 
+    slot.dataset.pointerActive = "true";
+
     if (isManaging) {
       event.preventDefault();
       beginWidgetDrag(root, widgetId, event.pointerId);
@@ -717,6 +723,12 @@ function bindWidgetManagement(root: HTMLElement): void {
     if (dragPointerId === event.pointerId) {
       finishWidgetDrag(root);
     }
+    window.setTimeout(() => {
+      root.querySelectorAll<HTMLElement>("[data-pointer-active='true']")
+        .forEach((slot) => {
+          delete slot.dataset.pointerActive;
+        });
+    }, 100);
   };
   root.addEventListener("pointerup", finishPointer, { capture: true });
   root.addEventListener("pointercancel", finishPointer, { capture: true });
