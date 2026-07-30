@@ -130,6 +130,7 @@ public partial class MainWindow : Window
         }
 
         gamingPerformanceService.Dispose();
+        peripheralBatteryService.Dispose();
         telemetryService.Dispose();
         base.OnClosed(e);
     }

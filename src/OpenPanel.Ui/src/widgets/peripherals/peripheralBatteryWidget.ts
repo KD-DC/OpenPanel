@@ -6,12 +6,15 @@ import type {
 export function renderPeripheralBatteryWidget(
   state: PeripheralBatterySummary
 ): string {
+  const devices = state.devices.filter(
+    (device) => device.batteryPercent !== null
+  );
   return `
     <section class="widget widget-peripherals" aria-label="Peripheral batteries">
       <span class="widget__eyebrow"><i data-lucide="battery-charging"></i>Batteries</span>
       <div class="peripheral-list">
-        ${state.devices.length > 0
-          ? state.devices.slice(0, 4).map(renderDevice).join("")
+        ${devices.length > 0
+          ? devices.slice(0, 4).map(renderDevice).join("")
           : `<div class="peripheral-empty">
               <i data-lucide="battery-medium"></i>
               <strong>No battery data</strong>

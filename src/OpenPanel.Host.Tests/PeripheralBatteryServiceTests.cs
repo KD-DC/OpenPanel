@@ -1,6 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OpenPanel.Host.Services;
-using System.Xml.Linq;
+using System.Text.Json;
 
 namespace OpenPanel.Host.Tests;
 
@@ -27,15 +27,63 @@ public sealed class PeripheralBatteryServiceTests
     }
 
     [TestMethod]
-    public void LogitechOptionsFlowDeviceRegistersWithoutBattery()
+    public void LogitechOptionsAgentParsesBatteryCapableDevices()
     {
-        var device = LogitechOptionsDeviceReader.Parse(
-            XDocument.Parse("""<device type="mouse" id="438307" />"""));
+        using var document = JsonDocument.Parse("""
+            {
+              "deviceInfos": [
+                {
+                  "id": "dev00000002",
+                  "displayName": "MX Master 3",
+                  "deviceType": "MOUSE",
+                  "state": "ACTIVE",
+                  "capabilities": { "hasBatteryStatus": true }
+                },
+                {
+                  "id": "dev00000000",
+                  "displayName": "Logi Unifying receiver",
+                  "deviceType": "RECEIVER",
+                  "state": "PRESENT",
+                  "capabilities": { "hasBatteryStatus": false }
+                }
+              ]
+            }
+            """);
 
-        Assert.IsNotNull(device);
-        Assert.AreEqual("Mouse", device.Category);
-        Assert.AreEqual("Logitech mouse", device.Name);
-        Assert.IsNull(device.BatteryPercent);
-        Assert.AreEqual("Logi Options+", device.Source);
+        var devices = LogitechOptionsBatteryReader.ParseDevices(
+            document.RootElement);
+
+        Assert.HasCount(1, devices);
+        Assert.AreEqual("MX Master 3", devices[0].Name);
+        Assert.AreEqual("Mouse", devices[0].Category);
+        Assert.IsTrue(devices[0].IsConnected);
+    }
+
+    [TestMethod]
+    public void LogitechOptionsAgentRequiresNumericBatteryPercentage()
+    {
+        using var valid = JsonDocument.Parse("""
+            {
+              "deviceId": "dev00000002",
+              "percentage": 74,
+              "level": "GOOD",
+              "charging": false
+            }
+            """);
+        using var coarseOnly = JsonDocument.Parse("""
+            {
+              "deviceId": "dev00000001",
+              "level": "GOOD"
+            }
+            """);
+
+        var battery = LogitechOptionsBatteryReader.ParseBattery(
+            valid.RootElement);
+
+        Assert.IsNotNull(battery);
+        Assert.AreEqual(74, battery.Percent);
+        Assert.IsFalse(battery.IsCharging);
+        Assert.IsNull(LogitechOptionsBatteryReader.ParseBattery(
+            coarseOnly.RootElement));
     }
 }

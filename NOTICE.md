@@ -24,6 +24,12 @@ adapted from the MIT-licensed
 [logitray](https://github.com/ithilias/logitray) project. OpenPanel performs
 read-only queries and does not install a Logitech background service.
 
+The read-only Logi Options+ named-pipe framing and battery endpoint behavior
+were informed by the MIT-licensed
+[logi-cli](https://github.com/balusch/logi-cli) interoperability project.
+OpenPanel connects only when the user's existing Logi Options+ agent is already
+running and does not start or modify that software.
+
 LibreHardwareMonitorLib brings these transitive packages into the restored dependency graph:
 
 - `BlackSharp.Core` 1.0.7: shared toolkit code, MPL-2.0.

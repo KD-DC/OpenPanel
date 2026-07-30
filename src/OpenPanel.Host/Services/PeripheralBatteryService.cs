@@ -6,7 +6,7 @@ using OpenPanel.Host.Models;
 
 namespace OpenPanel.Host.Services;
 
-public sealed class PeripheralBatteryService
+public sealed class PeripheralBatteryService : IDisposable
 {
     private const string BatteryLifeProperty = "System.Devices.BatteryLife";
     private const string ConnectedProperty = "System.Devices.Aep.IsConnected";
@@ -14,7 +14,7 @@ public sealed class PeripheralBatteryService
 
     private readonly SemaphoreSlim gate = new(1, 1);
     private readonly LogitechHidBatteryReader logitechReader = new();
-    private readonly LogitechOptionsDeviceReader logitechOptionsReader = new();
+    private readonly LogitechOptionsBatteryReader logitechOptionsReader = new();
     private PeripheralBatterySummary cached = new([], null);
     private DateTimeOffset nextRefresh;
 
@@ -23,7 +23,7 @@ public sealed class PeripheralBatteryService
     {
         if (DateTimeOffset.UtcNow < nextRefresh)
         {
-            return cached;
+            return WithOptionsBatteryReadings(cached);
         }
 
         await gate.WaitAsync(cancellationToken);
@@ -31,24 +31,18 @@ public sealed class PeripheralBatteryService
         {
             if (DateTimeOffset.UtcNow < nextRefresh)
             {
-                return cached;
+                return WithOptionsBatteryReadings(cached);
             }
 
             var standardTask = ReadBluetoothDevicesAsync(cancellationToken);
             var logitechTask = logitechReader.ReadAsync(cancellationToken);
             await Task.WhenAll(standardTask, logitechTask);
             var logitechDevices = logitechTask.Result;
-            var optionsFallback = logitechOptionsReader
-                .Read()
-                .Where(fallback => !logitechDevices.Any(device =>
-                    device.Category.Equals(
-                        fallback.Category,
-                        StringComparison.OrdinalIgnoreCase)));
 
             var devices = standardTask.Result
                 .Concat(logitechDevices)
-                .Concat(optionsFallback)
-                .GroupBy(device => device.Id, StringComparer.OrdinalIgnoreCase)
+                .Where(device => device.BatteryPercent.HasValue)
+                .GroupBy(DeviceKey, StringComparer.OrdinalIgnoreCase)
                 .Select(group => group
                     .OrderByDescending(device => device.BatteryPercent.HasValue)
                     .First())
@@ -65,7 +59,7 @@ public sealed class PeripheralBatteryService
                         "; ",
                         devices.Select(device =>
                             $"{device.Name}={device.BatteryPercent?.ToString() ?? "--"}% ({device.Source})")));
-            return cached;
+            return WithOptionsBatteryReadings(cached);
         }
         catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
@@ -79,6 +73,40 @@ public sealed class PeripheralBatteryService
         {
             gate.Release();
         }
+    }
+
+    public void Dispose()
+    {
+        logitechOptionsReader.Dispose();
+        gate.Dispose();
+    }
+
+    private PeripheralBatterySummary WithOptionsBatteryReadings(
+        PeripheralBatterySummary snapshot)
+    {
+        var devices = snapshot.Devices
+            .Concat(logitechOptionsReader.GetSnapshot())
+            .Where(device => device.BatteryPercent.HasValue)
+            .GroupBy(DeviceKey, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group
+                .OrderByDescending(device =>
+                    device.Source.Equals(
+                        "Logi Options+",
+                        StringComparison.OrdinalIgnoreCase))
+                .First())
+            .OrderBy(device => device.Category)
+            .ThenBy(device => device.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        return new PeripheralBatterySummary(devices, snapshot.UpdatedAt);
+    }
+
+    private static string DeviceKey(PeripheralBatteryDeviceSummary device)
+    {
+        var name = new string(device.Name
+            .Where(char.IsLetterOrDigit)
+            .Select(char.ToUpperInvariant)
+            .ToArray());
+        return $"{device.Category}:{name}";
     }
 
     private static async Task<IReadOnlyList<PeripheralBatteryDeviceSummary>>
@@ -100,7 +128,56 @@ public sealed class PeripheralBatteryService
             found,
             requestedProperties,
             cancellationToken);
+        await AddGattBatteryServicesAsync(found, cancellationToken);
         return found.Values.ToArray();
+    }
+
+    private static async Task AddGattBatteryServicesAsync(
+        IDictionary<string, PeripheralBatteryDeviceSummary> found,
+        CancellationToken cancellationToken)
+    {
+        var selector = GattDeviceService.GetDeviceSelectorFromUuid(
+            GattServiceUuids.Battery);
+        var services = await DeviceInformation.FindAllAsync(selector);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        foreach (var info in services)
+        {
+            try
+            {
+                using var service = await GattDeviceService.FromIdAsync(info.Id);
+                cancellationToken.ThrowIfCancellationRequested();
+                var device = service?.Device;
+                if (service is null ||
+                    device is null ||
+                    string.IsNullOrWhiteSpace(device.Name) ||
+                    Category(device.Name) == "Other")
+                {
+                    continue;
+                }
+
+                var battery = await TryReadGattBatteryAsync(
+                    service,
+                    cancellationToken);
+                if (!battery.HasValue)
+                {
+                    continue;
+                }
+
+                found[NormalizeBluetoothId(device.DeviceId, device.Name)] =
+                    CreateDevice(
+                        device.DeviceId,
+                        device.Name,
+                        battery,
+                        null,
+                        device.ConnectionStatus ==
+                            BluetoothConnectionStatus.Connected);
+            }
+            catch (Exception) when (!cancellationToken.IsCancellationRequested)
+            {
+                // A sleeping device can disappear while services are enumerated.
+            }
+        }
     }
 
     private static async Task AddClassicBluetoothDevicesAsync(
@@ -179,28 +256,12 @@ public sealed class PeripheralBatteryService
             {
                 using (service)
                 {
-                    var characteristics =
-                        await service.GetCharacteristicsForUuidAsync(
-                            GattCharacteristicUuids.BatteryLevel,
-                            BluetoothCacheMode.Uncached);
-                    if (characteristics.Status != GattCommunicationStatus.Success)
+                    var battery = await TryReadGattBatteryAsync(
+                        service,
+                        cancellationToken);
+                    if (battery.HasValue)
                     {
-                        continue;
-                    }
-
-                    foreach (var characteristic in characteristics.Characteristics)
-                    {
-                        var result = await characteristic.ReadValueAsync(
-                            BluetoothCacheMode.Uncached);
-                        cancellationToken.ThrowIfCancellationRequested();
-                        if (result.Status != GattCommunicationStatus.Success ||
-                            result.Value.Length == 0)
-                        {
-                            continue;
-                        }
-
-                        using var reader = DataReader.FromBuffer(result.Value);
-                        return Math.Clamp((int)reader.ReadByte(), 0, 100);
+                        return battery;
                     }
                 }
             }
@@ -210,6 +271,35 @@ public sealed class PeripheralBatteryService
             // Bluetooth devices can sleep or disconnect during a GATT query.
         }
 
+        return null;
+    }
+
+    private static async Task<int?> TryReadGattBatteryAsync(
+        GattDeviceService service,
+        CancellationToken cancellationToken)
+    {
+        var characteristics = await service.GetCharacteristicsForUuidAsync(
+            GattCharacteristicUuids.BatteryLevel,
+            BluetoothCacheMode.Uncached);
+        if (characteristics.Status != GattCommunicationStatus.Success)
+        {
+            return null;
+        }
+
+        foreach (var characteristic in characteristics.Characteristics)
+        {
+            var result = await characteristic.ReadValueAsync(
+                BluetoothCacheMode.Uncached);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (result.Status != GattCommunicationStatus.Success ||
+                result.Value.Length == 0)
+            {
+                continue;
+            }
+
+            using var reader = DataReader.FromBuffer(result.Value);
+            return Math.Clamp((int)reader.ReadByte(), 0, 100);
+        }
         return null;
     }
 

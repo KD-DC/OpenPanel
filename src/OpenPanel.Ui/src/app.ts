@@ -202,7 +202,22 @@ function renderWidgets(root: HTMLElement, state: DashboardState): void {
   updateWidget(root, "gpu-thermals", renderGpuThermalsWidget(state.advanced));
   updateWidget(root, "storage", renderStorageWidget(state.storage));
   updateWidget(root, "environment", renderEnvironmentWidget(state.weather));
-  updateWidget(root, "peripherals", renderPeripheralBatteryWidget(state.peripherals));
+  const peripheralSlot = root.querySelector<HTMLElement>(
+    "[data-widget=\"peripherals\"]"
+  );
+  if (peripheralSlot) {
+    const hasBatteryData = state.peripherals.devices.some(
+      (device) => device.batteryPercent !== null
+    );
+    peripheralSlot.hidden = !hasBatteryData;
+    if (hasBatteryData) {
+      updateWidget(
+        root,
+        "peripherals",
+        renderPeripheralBatteryWidget(state.peripherals)
+      );
+    }
+  }
   updateWidget(root, "gaming", renderGamingPerformanceWidget(state.gaming));
 }
 
