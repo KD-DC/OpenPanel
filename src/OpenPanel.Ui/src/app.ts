@@ -950,12 +950,18 @@ function syncAudioExpandedState(slot: HTMLElement): void {
 
 function syncEnvironmentExpandedState(slot: HTMLElement): void {
   const isExpanded = slot.dataset.expanded === "true";
-  slot.querySelectorAll<HTMLButtonElement>("[data-command='environment-expand']")
-    .forEach((button) => {
-      const isCollapseButton = button.closest(".environment") !== null;
-      button.setAttribute("aria-expanded", String(isExpanded));
-      button.tabIndex = isCollapseButton === isExpanded ? 0 : -1;
-    });
+  const button = slot.querySelector<HTMLButtonElement>(
+    "[data-command='environment-expand']"
+  );
+  button?.setAttribute("aria-expanded", String(isExpanded));
+  button?.setAttribute(
+    "aria-label",
+    isExpanded ? "Collapse weather" : "Expand weather"
+  );
+  button?.setAttribute(
+    "title",
+    isExpanded ? "Collapse weather" : "Expand weather"
+  );
 }
 
 function syncNetworkExpandedState(slot: HTMLElement): void {

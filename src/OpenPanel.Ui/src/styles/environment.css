@@ -39,6 +39,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding-inline-end: 52px;
 }
 
 .environment-compact__header > span {
@@ -60,8 +61,11 @@
   block-size: 20px;
 }
 
-.environment-compact__header button,
-.environment__header-actions button {
+.environment-resize {
+  position: absolute;
+  z-index: 4;
+  inset-block-start: 22px;
+  inset-inline-end: 22px;
   display: grid;
   min-block-size: 40px;
   min-inline-size: 40px;
@@ -71,10 +75,27 @@
   background: #101416;
 }
 
-.environment-compact__header button svg,
-.environment__header-actions button svg {
+.environment-resize svg {
   inline-size: 19px;
   block-size: 19px;
+}
+
+.environment-resize__collapse {
+  display: none;
+}
+
+.widget-slot[data-widget="environment"][data-expanded="true"] .environment-resize {
+  inset-block-start: 28px;
+  inset-inline-start: 306px;
+  inset-inline-end: auto;
+}
+
+.widget-slot[data-widget="environment"][data-expanded="true"] .environment-resize__expand {
+  display: none;
+}
+
+.widget-slot[data-widget="environment"][data-expanded="true"] .environment-resize__collapse {
+  display: block;
 }
 
 .environment-compact__current {
@@ -197,6 +218,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.environment__location {
+  padding-inline-end: 52px;
 }
 
 .environment__location > span,
