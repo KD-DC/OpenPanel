@@ -68,20 +68,32 @@ internal static class NetworkProviderPermissionService
     {
         try
         {
-            var sid = WindowsIdentity.GetCurrent().User?.Value;
-            if (string.IsNullOrWhiteSpace(sid))
+            var sid = WindowsIdentity.GetCurrent().User;
+            if (sid is null)
             {
                 return 1;
             }
 
-            var providerId = NetworkProviderId;
-            var result = EventAccessControl(
-                ref providerId,
-                EventSecurityAddDacl,
-                sid,
-                TraceLogGuidEnable,
-                true);
-            return result == 0 ? 0 : unchecked((int)result);
+            var sidBytes = new byte[sid.BinaryLength];
+            sid.GetBinaryForm(sidBytes, 0);
+            var sidPointer = Marshal.AllocHGlobal(sidBytes.Length);
+            try
+            {
+                Marshal.Copy(sidBytes, 0, sidPointer, sidBytes.Length);
+                var providerId = NetworkProviderId;
+                var result = EventAccessControl(
+                    ref providerId,
+                    EventSecurityAddDacl,
+                    sidPointer,
+                    TraceLogGuidEnable,
+                    true);
+                AppLog.Write("network.permission.helper", $"result={result}");
+                return result == 0 ? 0 : unchecked((int)result);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(sidPointer);
+            }
         }
         catch (Exception)
         {
@@ -93,7 +105,7 @@ internal static class NetworkProviderPermissionService
     private static extern uint EventAccessControl(
         ref Guid guid,
         uint operation,
-        string sid,
+        nint sid,
         uint rights,
         [MarshalAs(UnmanagedType.Bool)] bool allowOrDeny);
 }
