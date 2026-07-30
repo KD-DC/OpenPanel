@@ -33,6 +33,7 @@ public partial class MainWindow : Window
     private readonly WeatherService weatherService;
     private readonly IStartupRegistrationService startupRegistrationService =
         new StartupRegistrationService();
+    private readonly WebViewProfileService webViewProfileService = new();
     private readonly CancellationTokenSource telemetryCancellation = new();
     private readonly Forms.ContextMenuStrip trayMenu;
     private readonly Forms.ToolStripMenuItem currentAppearanceMenuItem;
@@ -116,7 +117,11 @@ public partial class MainWindow : Window
 
         try
         {
-            await DashboardWebView.EnsureCoreWebView2Async();
+            webViewProfileService.MigrateLegacyLocalStorage();
+            var webViewEnvironment =
+                await CoreWebView2Environment.CreateAsync(
+                    userDataFolder: webViewProfileService.UserDataFolder);
+            await DashboardWebView.EnsureCoreWebView2Async(webViewEnvironment);
             DashboardWebView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(5, 7, 10);
 
             var coreWebView = DashboardWebView.CoreWebView2;

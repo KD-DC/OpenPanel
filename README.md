@@ -152,7 +152,9 @@ volume publicly but does not provide a fully public default-endpoint setter.
 
 The UI is strict TypeScript, HTML, and CSS bundled by Vite. It deliberately does
 not use React, a charting package, or another UI framework. Widget layout and
-sizing are persisted in WebView2 local storage.
+sizing are persisted in WebView2 local storage under the shared
+`%LOCALAPPDATA%\OpenPanel\WebView2` profile so development and installed builds
+use the same arrangement.
 
 Host/UI communication is constrained to the typed bridge:
 
