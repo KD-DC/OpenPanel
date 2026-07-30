@@ -64,6 +64,11 @@
   font-size: 16px;
 }
 
+.peripheral-device > strong.is-text-state {
+  color: var(--accent);
+  font-size: 13px;
+}
+
 .peripheral-device.is-disconnected {
   opacity: 0.55;
 }

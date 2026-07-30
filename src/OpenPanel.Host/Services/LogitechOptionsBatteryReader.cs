@@ -40,7 +40,8 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
             return devices.Values
                 .Where(device =>
                     batteries.TryGetValue(device.Id, out var battery) &&
-                    battery.Percent.HasValue)
+                    (battery.Percent.HasValue ||
+                     !string.IsNullOrWhiteSpace(battery.State)))
                 .Select(device =>
                 {
                     var battery = batteries[device.Id];
@@ -51,7 +52,8 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
                         battery.Percent,
                         battery.IsCharging,
                         device.IsConnected,
-                        "Logi Options+");
+                        "Logi Options+",
+                        battery.State);
                 })
                 .ToArray();
         }
@@ -109,9 +111,19 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
     internal static OptionsBattery? ParseBattery(JsonElement payload)
     {
         var deviceId = ReadString(payload, "deviceId");
-        if (string.IsNullOrWhiteSpace(deviceId) ||
-            !payload.TryGetProperty("percentage", out var percentage) ||
-            !percentage.TryGetInt32(out var percent))
+        if (string.IsNullOrWhiteSpace(deviceId))
+        {
+            return null;
+        }
+
+        int? percent = null;
+        if (payload.TryGetProperty("percentage", out var percentage) &&
+            percentage.TryGetInt32(out var percentageValue))
+        {
+            percent = Math.Clamp(percentageValue, 0, 100);
+        }
+        var state = NormalizeBatteryState(ReadString(payload, "level"));
+        if (!percent.HasValue && state is null)
         {
             return null;
         }
@@ -125,8 +137,9 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
 
         return new OptionsBattery(
             deviceId,
-            Math.Clamp(percent, 0, 100),
-            charging);
+            percent,
+            charging,
+            state);
     }
 
     private async Task RunAsync(CancellationToken cancellationToken)
@@ -247,11 +260,12 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
                 {
                     batteries[battery.DeviceId] = new BatteryRecord(
                         battery.Percent,
-                        battery.IsCharging);
+                        battery.IsCharging,
+                        battery.State);
                 }
                 AppLog.Write(
                     "peripherals.logitech-options.battery",
-                    $"{battery.DeviceId}={battery.Percent}%");
+                    $"{battery.DeviceId}={battery.Percent?.ToString() ?? battery.State}");
             }
             return;
         }
@@ -406,6 +420,21 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
                 : string.Empty;
     }
 
+    private static string? NormalizeBatteryState(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var words = value
+            .Trim()
+            .Replace('_', ' ')
+            .Replace('-', ' ')
+            .ToLowerInvariant();
+        return char.ToUpperInvariant(words[0]) + words[1..];
+    }
+
     internal sealed record OptionsDevice(
         string Id,
         string Name,
@@ -414,8 +443,9 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
 
     internal sealed record OptionsBattery(
         string DeviceId,
-        int Percent,
-        bool? IsCharging);
+        int? Percent,
+        bool? IsCharging,
+        string? State);
 
     private sealed record DeviceRecord(
         string Id,
@@ -423,5 +453,8 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
         string Category,
         bool IsConnected);
 
-    private sealed record BatteryRecord(int? Percent, bool? IsCharging);
+    private sealed record BatteryRecord(
+        int? Percent,
+        bool? IsCharging,
+        string? State);
 }

@@ -115,6 +115,7 @@ export interface PeripheralBatteryDeviceSummary {
   name: string;
   category: string;
   batteryPercent: number | null;
+  batteryState: string | null;
   isCharging: boolean | null;
   isConnected: boolean;
   source: string;

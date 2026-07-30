@@ -89,7 +89,8 @@ public sealed record PeripheralBatteryDeviceSummary(
     int? BatteryPercent,
     bool? IsCharging,
     bool IsConnected,
-    string Source);
+    string Source,
+    string? BatteryState = null);
 
 public sealed record GamingPerformanceSummary(
     bool IsActive,

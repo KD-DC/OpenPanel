@@ -39,7 +39,7 @@ visible on a dedicated display.
 | --- | --- |
 | Hardware | CPU/GPU utilization and temperature, RAM/VRAM usage, GPU power and fans, plus live network download/upload rates |
 | Network Quality | On-demand latency, jitter, packet loss, link speed, interface, and local-address diagnostics |
-| Peripheral Batteries | Numeric battery state for compatible Bluetooth devices and Logitech mouse/keyboard devices through read-only HID++ or the existing Logi Options+ agent; hidden when no percentage is available |
+| Peripheral Batteries | Numeric battery state for compatible Bluetooth devices and Logitech mouse/keyboard devices through read-only HID++ or the existing Logi Options+ agent; descriptive states are shown when Options+ exposes only coarse levels |
 | Gaming | Manually activated FPS, frame time, 1% low, GPU busy time, and stutter count using PresentMon |
 | Media | Artwork, source, title, artist, playback state, timeline, previous, play/pause, next, seek, and shuffle when supported |
 | Audio | Stable output-device list, default-output switching, global volume, mute, and activity |
@@ -295,10 +295,10 @@ added to that file.
 
 - Sensor coverage varies by motherboard, CPU, GPU, storage controller, drivers,
   permissions, and LibreHardwareMonitor support.
-- Peripheral battery coverage depends on the device exposing a numeric value
-  through Windows Bluetooth, Logitech HID++, or Logi Options+. Devices that
-  expose only coarse states such as `good` or `low` are omitted rather than
-  presenting an invented percentage.
+- Peripheral battery coverage depends on the device exposing a value through
+  Windows Bluetooth, Logitech HID++, or Logi Options+. Exact percentages are
+  shown when available; Options+ coarse states such as `good` or `low` are
+  displayed as text without inventing a percentage.
 - Some applications publish incomplete or no Windows media-session data.
 - Shuffle and other media commands appear only when the selected session
   reports support, and applications may still reject a command.

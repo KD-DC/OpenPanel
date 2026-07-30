@@ -60,7 +60,7 @@ public sealed class PeripheralBatteryServiceTests
     }
 
     [TestMethod]
-    public void LogitechOptionsAgentRequiresNumericBatteryPercentage()
+    public void LogitechOptionsAgentParsesExactAndCoarseBatteryStates()
     {
         using var valid = JsonDocument.Parse("""
             {
@@ -73,17 +73,21 @@ public sealed class PeripheralBatteryServiceTests
         using var coarseOnly = JsonDocument.Parse("""
             {
               "deviceId": "dev00000001",
-              "level": "GOOD"
+              "level": "LOW_BATTERY"
             }
             """);
 
         var battery = LogitechOptionsBatteryReader.ParseBattery(
             valid.RootElement);
+        var coarseBattery = LogitechOptionsBatteryReader.ParseBattery(
+            coarseOnly.RootElement);
 
         Assert.IsNotNull(battery);
         Assert.AreEqual(74, battery.Percent);
+        Assert.AreEqual("Good", battery.State);
         Assert.IsFalse(battery.IsCharging);
-        Assert.IsNull(LogitechOptionsBatteryReader.ParseBattery(
-            coarseOnly.RootElement));
+        Assert.IsNotNull(coarseBattery);
+        Assert.IsNull(coarseBattery.Percent);
+        Assert.AreEqual("Low battery", coarseBattery.State);
     }
 }

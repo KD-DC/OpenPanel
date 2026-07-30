@@ -41,7 +41,7 @@ public sealed class PeripheralBatteryService : IDisposable
 
             var devices = standardTask.Result
                 .Concat(logitechDevices)
-                .Where(device => device.BatteryPercent.HasValue)
+                .Where(HasBatteryData)
                 .GroupBy(DeviceKey, StringComparer.OrdinalIgnoreCase)
                 .Select(group => group
                     .OrderByDescending(device => device.BatteryPercent.HasValue)
@@ -58,7 +58,7 @@ public sealed class PeripheralBatteryService : IDisposable
                     : string.Join(
                         "; ",
                         devices.Select(device =>
-                            $"{device.Name}={device.BatteryPercent?.ToString() ?? "--"}% ({device.Source})")));
+                            $"{device.Name}={BatteryValue(device)} ({device.Source})")));
             return WithOptionsBatteryReadings(cached);
         }
         catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
@@ -86,18 +86,32 @@ public sealed class PeripheralBatteryService : IDisposable
     {
         var devices = snapshot.Devices
             .Concat(logitechOptionsReader.GetSnapshot())
-            .Where(device => device.BatteryPercent.HasValue)
+            .Where(HasBatteryData)
             .GroupBy(DeviceKey, StringComparer.OrdinalIgnoreCase)
             .Select(group => group
-                .OrderByDescending(device =>
-                    device.Source.Equals(
-                        "Logi Options+",
-                        StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(device => device.BatteryPercent.HasValue)
+                .ThenByDescending(device =>
+                    !string.IsNullOrWhiteSpace(device.BatteryState))
                 .First())
             .OrderBy(device => device.Category)
             .ThenBy(device => device.Name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
         return new PeripheralBatterySummary(devices, snapshot.UpdatedAt);
+    }
+
+    private static bool HasBatteryData(
+        PeripheralBatteryDeviceSummary device)
+    {
+        return device.BatteryPercent.HasValue ||
+            !string.IsNullOrWhiteSpace(device.BatteryState);
+    }
+
+    private static string BatteryValue(
+        PeripheralBatteryDeviceSummary device)
+    {
+        return device.BatteryPercent.HasValue
+            ? $"{device.BatteryPercent}%"
+            : device.BatteryState ?? "unknown";
     }
 
     private static string DeviceKey(PeripheralBatteryDeviceSummary device)

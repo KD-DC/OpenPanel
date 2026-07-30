@@ -207,7 +207,9 @@ function renderWidgets(root: HTMLElement, state: DashboardState): void {
   );
   if (peripheralSlot) {
     const hasBatteryData = state.peripherals.devices.some(
-      (device) => device.batteryPercent !== null
+      (device) =>
+        device.batteryPercent !== null ||
+        device.batteryState !== null
     );
     peripheralSlot.hidden = !hasBatteryData;
     if (hasBatteryData) {

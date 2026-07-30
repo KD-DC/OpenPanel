@@ -7,7 +7,9 @@ export function renderPeripheralBatteryWidget(
   state: PeripheralBatterySummary
 ): string {
   const devices = state.devices.filter(
-    (device) => device.batteryPercent !== null
+    (device) =>
+      device.batteryPercent !== null ||
+      device.batteryState !== null
   );
   return `
     <section class="widget widget-peripherals" aria-label="Peripheral batteries">
@@ -30,25 +32,33 @@ export function renderPeripheralBatteryWidget(
 
 function renderDevice(device: PeripheralBatteryDeviceSummary): string {
   const percent = device.batteryPercent;
+  const batteryState = device.batteryState;
   const icon = categoryIcon(device.category);
   const status = !device.isConnected
     ? "Disconnected"
-    : percent === null
-      ? "Battery unavailable"
+    : percent === null && batteryState !== null
+      ? `Battery status${device.isCharging ? " · charging" : ""}`
+      : percent === null
+        ? "Battery unavailable"
       : `${Math.round(percent)}%${device.isCharging ? " charging" : ""}`;
+  const value = percent === null
+    ? batteryState ?? "--"
+    : `${Math.round(percent)}%`;
   return `
     <article class="peripheral-device ${device.isConnected ? "" : "is-disconnected"}">
       <i data-lucide="${icon}"></i>
       <div>
         <span title="${escapeHtml(device.name)}">${escapeHtml(device.name)}</span>
         <small>${status}</small>
-        <div role="meter" aria-label="${escapeHtml(device.name)} battery"
-          aria-valuemin="0" aria-valuemax="100"
-          ${percent === null ? "" : `aria-valuenow="${Math.round(percent)}"`}>
-          <span style="inline-size:${percent === null ? 0 : Math.max(0, Math.min(100, percent))}%"></span>
-        </div>
+        ${percent === null
+          ? ""
+          : `<div role="meter" aria-label="${escapeHtml(device.name)} battery"
+              aria-valuemin="0" aria-valuemax="100"
+              aria-valuenow="${Math.round(percent)}">
+              <span style="inline-size:${Math.max(0, Math.min(100, percent))}%"></span>
+            </div>`}
       </div>
-      <strong>${percent === null ? "--" : `${Math.round(percent)}%`}</strong>
+      <strong class="${percent === null ? "is-text-state" : ""}">${escapeHtml(value)}</strong>
     </article>
   `;
 }
