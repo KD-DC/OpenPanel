@@ -6,6 +6,7 @@ public sealed record DashboardState(
     AdvancedTelemetrySummary Advanced,
     StorageSummary Storage,
     NetworkQualitySummary Network,
+    ProcessUsageSummary Processes,
     PeripheralBatterySummary Peripherals,
     GamingPerformanceSummary Gaming,
     MediaSummary Media,
@@ -91,6 +92,17 @@ public sealed record NetworkApplicationSummary(
     string Name,
     double UploadMbps,
     double DownloadMbps);
+
+public sealed record ProcessUsageSummary(
+    bool IsActive,
+    string Status,
+    IReadOnlyList<ProcessUsageApplicationSummary> TopCpu,
+    IReadOnlyList<ProcessUsageApplicationSummary> TopMemory);
+
+public sealed record ProcessUsageApplicationSummary(
+    string Name,
+    double CpuPercent,
+    double MemoryMegabytes);
 
 public sealed record PeripheralBatterySummary(
     IReadOnlyList<PeripheralBatteryDeviceSummary> Devices,

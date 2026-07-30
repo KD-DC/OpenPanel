@@ -236,6 +236,28 @@ meter {
   overflow: hidden;
 }
 
+.hardware-pane__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hardware-pane__header button {
+  display: grid;
+  min-block-size: 36px;
+  min-inline-size: 36px;
+  place-items: center;
+  border-color: #2b3336;
+  padding: 0;
+  background: #101416;
+}
+
+.hardware-pane__header button svg {
+  inline-size: 17px;
+  block-size: 17px;
+}
+
 .hardware-loads {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -14,6 +14,7 @@ export interface UiToHostMessage<TPayload = unknown> {
     | "command:audio.input.mute"
     | "command:audio.session.volume"
     | "command:audio.session.mute"
+    | "command:hardware.expanded"
     | "command:network.expanded"
     | "command:network.permission"
     | "command:gaming.active"
@@ -32,6 +33,7 @@ export interface DashboardState {
   advanced: AdvancedTelemetrySummary;
   storage: StorageSummary;
   network: NetworkQualitySummary;
+  processes: ProcessUsageSummary;
   peripherals: PeripheralBatterySummary;
   gaming: GamingPerformanceSummary;
   media: MediaSummary;
@@ -120,6 +122,19 @@ export interface NetworkApplicationSummary {
   name: string;
   uploadMbps: number;
   downloadMbps: number;
+}
+
+export interface ProcessUsageSummary {
+  isActive: boolean;
+  status: string;
+  topCpu: ProcessUsageApplicationSummary[];
+  topMemory: ProcessUsageApplicationSummary[];
+}
+
+export interface ProcessUsageApplicationSummary {
+  name: string;
+  cpuPercent: number;
+  memoryMegabytes: number;
 }
 
 export interface PeripheralBatterySummary {

@@ -57,6 +57,12 @@ export const initialState: DashboardState = {
       applications: []
     }
   },
+  processes: {
+    isActive: false,
+    status: "Open Hardware to start application sampling",
+    topCpu: [],
+    topMemory: []
+  },
   peripherals: {
     devices: [],
     updatedAt: null

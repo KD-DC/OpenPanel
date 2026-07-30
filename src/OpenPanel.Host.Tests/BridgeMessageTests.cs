@@ -113,6 +113,11 @@ public sealed class BridgeMessageTests
                         "Spotify",
                         0.1,
                         4.2)])),
+            new ProcessUsageSummary(
+                true,
+                "Live application usage",
+                [new ProcessUsageApplicationSummary("Browser", 8.5, 640)],
+                [new ProcessUsageApplicationSummary("Editor", 2.1, 1024)]),
             new PeripheralBatterySummary(
                 [new PeripheralBatteryDeviceSummary(
                     "logitech:c52b:1",
@@ -170,6 +175,8 @@ public sealed class BridgeMessageTests
         StringAssert.Contains(json, "\"currentTemperatureFahrenheit\":81");
         StringAssert.Contains(json, "\"usAqi\":42");
         StringAssert.Contains(json, "\"latencyMs\":12.4");
+        StringAssert.Contains(json, "\"cpuPercent\":8.5");
+        StringAssert.Contains(json, "\"memoryMegabytes\":1024");
         StringAssert.Contains(json, "\"batteryPercent\":82");
         StringAssert.Contains(json, "\"collectorAvailable\":true");
     }
@@ -213,6 +220,19 @@ public sealed class BridgeMessageTests
 
         var command = JsonSerializer.Deserialize<UiToHostMessage>(json, MessageJson.Options);
         var payload = command?.Payload?.Deserialize<NetworkExpandedPayload>(MessageJson.Options);
+
+        Assert.IsNotNull(payload);
+        Assert.IsTrue(payload.IsExpanded);
+    }
+
+    [TestMethod]
+    public void HardwareExpandedCommandDeserializesTypedPayload()
+    {
+        const string json =
+            """{"type":"command:hardware.expanded","payload":{"isExpanded":true}}""";
+
+        var command = JsonSerializer.Deserialize<UiToHostMessage>(json, MessageJson.Options);
+        var payload = command?.Payload?.Deserialize<HardwareExpandedPayload>(MessageJson.Options);
 
         Assert.IsNotNull(payload);
         Assert.IsTrue(payload.IsExpanded);

@@ -8,6 +8,8 @@ OpenPanel samples live read-only CPU, GPU, memory, and network telemetry once pe
 - `GlobalMemoryStatusEx`: reliable physical and committed-memory used, available, and total values.
 - `DriveInfo`: fixed-volume used percentage when LibreHardwareMonitor cannot expose storage devices without elevation.
 - .NET network-interface statistics: upload and download byte deltas.
+- `System.Diagnostics.Process`: on-demand per-application CPU deltas and
+  working-set memory while the Hardware detail view is open.
 
 Only the LibreHardwareMonitor CPU, GPU, memory, and storage categories are enabled. Motherboard, controller, battery, PSU, network, and power-monitor groups remain disabled to limit initialization work and avoid duplicating the existing network sampler.
 
@@ -19,6 +21,8 @@ Network rates use the busiest active non-loopback interface in each direction. T
 - Hardware work runs away from the WPF UI thread.
 - The first network sample is zero because a byte delta requires two observations.
 - Storage values are cached between five-second updates.
+- Application CPU and memory rankings sample every two seconds only while their
+  expanded view is open; collapsed Hardware performs no process enumeration.
 - A one-time storage sensor inventory is written to `%LOCALAPPDATA%\OpenPanel\openpanel.log` for hardware diagnostics.
 - Hardware initialization retries no more than once every 30 seconds after failure.
 - Polling is canceled and LibreHardwareMonitor is closed when the dashboard window closes.

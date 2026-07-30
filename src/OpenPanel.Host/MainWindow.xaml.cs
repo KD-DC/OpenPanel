@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private readonly TelemetryService telemetryService = new();
     private readonly NetworkQualityService networkQualityService = new();
     private readonly NetworkApplicationTrafficService networkApplicationTrafficService = new();
+    private readonly ProcessUsageService processUsageService = new();
     private readonly PeripheralBatteryService peripheralBatteryService = new();
     private readonly GamingPerformanceService gamingPerformanceService = new();
     private readonly AudioDeviceService audioDeviceService = new();
@@ -371,6 +372,10 @@ public partial class MainWindow : Window
                 networkQualityService.SetActive(networkExpanded.IsExpanded);
                 networkApplicationTrafficService.SetActive(networkExpanded.IsExpanded);
                 break;
+            case "command:hardware.expanded":
+                var hardwareExpanded = DeserializePayload<HardwareExpandedPayload>(command);
+                processUsageService.SetActive(hardwareExpanded.IsExpanded);
+                break;
             case "command:network.permission":
                 if (await NetworkProviderPermissionService.RequestGrantAsync(cancellationToken))
                 {
@@ -466,6 +471,7 @@ public partial class MainWindow : Window
                 {
                     var telemetryTask = telemetryService.GetSnapshotAsync(cancellationToken);
                     var networkTask = networkQualityService.GetSnapshotAsync(cancellationToken);
+                    var processTask = processUsageService.GetSnapshotAsync(cancellationToken);
                     var peripheralTask = peripheralBatteryService.GetSnapshotAsync(cancellationToken);
                     var mediaTask = mediaSessionService.GetCurrentSessionAsync(cancellationToken);
                     var audioTask = audioDeviceService.GetOutputsAsync(cancellationToken);
@@ -474,6 +480,7 @@ public partial class MainWindow : Window
                     await Task.WhenAll(
                         telemetryTask,
                         networkTask,
+                        processTask,
                         peripheralTask,
                         mediaTask,
                         audioTask,
@@ -484,6 +491,7 @@ public partial class MainWindow : Window
                         {
                             ApplicationTraffic = networkApplicationTrafficService.GetSnapshot()
                         },
+                        processTask.Result,
                         peripheralTask.Result,
                         gamingPerformanceService.GetSnapshot(),
                         mediaTask.Result,
@@ -506,6 +514,7 @@ public partial class MainWindow : Window
     private void PostStateUpdate(
         HardwareTelemetrySnapshot telemetry,
         NetworkQualitySummary network,
+        ProcessUsageSummary processes,
         PeripheralBatterySummary peripherals,
         GamingPerformanceSummary gaming,
         MediaSummary media,
@@ -521,6 +530,7 @@ public partial class MainWindow : Window
         var state = stateProvider.CreateState(
             telemetry,
             network,
+            processes,
             peripherals,
             gaming,
             media,

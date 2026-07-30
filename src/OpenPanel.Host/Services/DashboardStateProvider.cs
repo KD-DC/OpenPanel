@@ -7,6 +7,7 @@ public sealed class DashboardStateProvider
     public DashboardState CreateState(
         HardwareTelemetrySnapshot telemetry,
         NetworkQualitySummary network,
+        ProcessUsageSummary processes,
         PeripheralBatterySummary peripherals,
         GamingPerformanceSummary gaming,
         MediaSummary media,
@@ -21,6 +22,7 @@ public sealed class DashboardStateProvider
             telemetry.Advanced,
             telemetry.Storage,
             network,
+            processes,
             peripherals,
             gaming,
             media,

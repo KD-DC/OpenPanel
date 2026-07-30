@@ -37,7 +37,7 @@ visible on a dedicated display.
 
 | Widget | Current information and controls |
 | --- | --- |
-| Hardware | CPU/GPU utilization and temperature, RAM/VRAM usage, GPU power and fans, plus live network download/upload rates |
+| Hardware | CPU/GPU utilization and temperature, RAM/VRAM usage, GPU power and fans, live network rates, plus an on-demand expanded view of the top applications by CPU and working-set memory |
 | Network Quality | On-demand latency, jitter, packet loss, link speed, interface, and local-address diagnostics |
 | Peripheral Batteries | Numeric battery state for compatible Bluetooth devices and Logitech mouse/keyboard devices through read-only HID++ or the existing Logi Options+ agent; descriptive states are shown when Options+ exposes only coarse levels |
 | Gaming | Manually activated FPS, frame time, 1% low, GPU busy time, and stutter count using PresentMon |
@@ -50,7 +50,7 @@ visible on a dedicated display.
 | Storage | Capacity, activity, temperature, and read/write rates for detected fixed drives |
 | Weather | Current conditions, daily high/low, feels-like temperature, humidity, wind, and U.S. AQI |
 
-The Media, Weather, and Hardware network section can expand for more detail. Compact Media occupies
+Media, Weather, Hardware application usage, and the Hardware network section can expand for more detail. Compact Media occupies
 one standard widget width; expanded Media returns to its larger artwork-focused
 layout while surrounding widgets automatically reflow.
 
@@ -115,7 +115,7 @@ flowchart LR
 The .NET 10 WPF host owns:
 
 - Display discovery, window placement, system tray behavior, and WebView2.
-- Hardware, memory, network, storage, media, audio, and weather services.
+- Hardware, on-demand process usage, memory, network, storage, media, audio, and weather services.
 - Normalization of Windows-specific data into one `DashboardState`.
 - Validation and execution of typed commands from the UI.
 - Settings and diagnostic logs under `%LOCALAPPDATA%\OpenPanel`.
@@ -134,7 +134,8 @@ Host/UI communication is constrained to the typed bridge:
 
 - Host to UI: `state:update`
 - UI to host: `command:audio.*`, `command:media.*`,
-  `command:network.expanded`, `command:gaming.active`, and
+  `command:hardware.expanded`, `command:network.expanded`,
+  `command:gaming.active`, and
   `command:system.ready`
 
 See [Architecture](docs/architecture.md) for additional implementation detail.
@@ -163,6 +164,9 @@ Low background overhead is a primary project requirement.
   of displaying them as percentages.
 - Network quality sends one small ICMP probe per second only while its expanded
   view is open.
+- Top application CPU and working-set memory samples enumerate local processes
+  every two seconds only while Hardware application usage is expanded. Closing
+  the view clears its process baseline and cached rankings immediately.
 - Per-application network attribution starts one 2 MB real-time ETW session
   only while Network diagnostics is expanded. It aggregates events into
   two-second windows and stops the session immediately when the view closes.

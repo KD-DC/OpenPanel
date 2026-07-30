@@ -105,6 +105,7 @@ let pendingPointer:
 let edgeTimer: number | null = null;
 let edgeDirection = 0;
 let suppressNextClick = false;
+type SystemExpandedView = "hardware" | "network";
 
 export function renderDashboard(root: HTMLElement, state: DashboardState): void {
   latestState = state;
@@ -180,7 +181,12 @@ function renderWidgets(root: HTMLElement, state: DashboardState): void {
   updateWidget(
     root,
     "system",
-    renderCombinedSystemWidget(state.telemetry, state.gpu, state.network)
+    renderCombinedSystemWidget(
+      state.telemetry,
+      state.gpu,
+      state.network,
+      state.processes
+    )
   );
   updateWidget(
     root,
@@ -314,7 +320,7 @@ function updateWidget(root: HTMLElement, name: string, markup: string): void {
   if (name === "audio") {
     syncAudioExpandedState(slot);
   } else if (name === "system") {
-    syncNetworkExpandedState(slot);
+    syncSystemExpandedState(slot);
   } else if (name === "environment") {
     syncEnvironmentExpandedState(slot);
   }
@@ -531,13 +537,14 @@ function bindCommands(root: HTMLElement): void {
       case "network-expand": {
         const slot = target.closest<HTMLElement>("[data-widget='system']");
         if (slot) {
-          slot.dataset.expanded =
-            slot.dataset.expanded === "true" ? "false" : "true";
-          syncNetworkExpandedState(slot);
-          postCommand({
-            type: "command:network.expanded",
-            payload: { isExpanded: slot.dataset.expanded === "true" }
-          });
+          toggleSystemExpandedView(slot, "network");
+        }
+        break;
+      }
+      case "hardware-expand": {
+        const slot = target.closest<HTMLElement>("[data-widget='system']");
+        if (slot) {
+          toggleSystemExpandedView(slot, "hardware");
         }
         break;
       }
@@ -745,6 +752,11 @@ function beginWidgetDrag(
   suppressNextClick = true;
   clearEdgeTimer();
   root.querySelectorAll<HTMLElement>("[data-expanded='true']").forEach((slot) => {
+    if (slot.dataset.widget === "system") {
+      setSystemExpandedView(slot, null);
+      return;
+    }
+
     slot.dataset.expanded = "false";
     if (slot.dataset.widget === "audio") {
       syncAudioExpandedState(slot);
@@ -964,12 +976,81 @@ function syncEnvironmentExpandedState(slot: HTMLElement): void {
   );
 }
 
-function syncNetworkExpandedState(slot: HTMLElement): void {
-  const isExpanded = slot.dataset.expanded === "true";
+function toggleSystemExpandedView(
+  slot: HTMLElement,
+  view: SystemExpandedView
+): void {
+  const current = currentSystemExpandedView(slot);
+  setSystemExpandedView(slot, current === view ? null : view);
+}
+
+function setSystemExpandedView(
+  slot: HTMLElement,
+  view: SystemExpandedView | null
+): void {
+  const current = currentSystemExpandedView(slot);
+  if (current === view) {
+    syncSystemExpandedState(slot);
+    return;
+  }
+
+  if (current === "network") {
+    postCommand({
+      type: "command:network.expanded",
+      payload: { isExpanded: false }
+    });
+  } else if (current === "hardware") {
+    postCommand({
+      type: "command:hardware.expanded",
+      payload: { isExpanded: false }
+    });
+  }
+
+  slot.dataset.expanded = String(view !== null);
+  if (view === null) {
+    delete slot.dataset.expandedView;
+  } else {
+    slot.dataset.expandedView = view;
+  }
+  syncSystemExpandedState(slot);
+
+  if (view === "network") {
+    postCommand({
+      type: "command:network.expanded",
+      payload: { isExpanded: true }
+    });
+  } else if (view === "hardware") {
+    postCommand({
+      type: "command:hardware.expanded",
+      payload: { isExpanded: true }
+    });
+  }
+}
+
+function currentSystemExpandedView(
+  slot: HTMLElement
+): SystemExpandedView | null {
+  if (slot.dataset.expanded !== "true") {
+    return null;
+  }
+
+  return slot.dataset.expandedView === "hardware" ? "hardware" : "network";
+}
+
+function syncSystemExpandedState(slot: HTMLElement): void {
+  const view = currentSystemExpandedView(slot);
   slot.querySelectorAll<HTMLButtonElement>("[data-command='network-expand']")
     .forEach((button) => {
       const isCollapseButton = button.closest(".network-quality") !== null;
-      button.setAttribute("aria-expanded", String(isExpanded));
-      button.tabIndex = isCollapseButton === isExpanded ? 0 : -1;
+      const networkExpanded = view === "network";
+      button.setAttribute("aria-expanded", String(networkExpanded));
+      button.tabIndex = isCollapseButton === networkExpanded ? 0 : -1;
+    });
+  slot.querySelectorAll<HTMLButtonElement>("[data-command='hardware-expand']")
+    .forEach((button) => {
+      const isCollapseButton = button.closest(".hardware-processes") !== null;
+      const hardwareExpanded = view === "hardware";
+      button.setAttribute("aria-expanded", String(hardwareExpanded));
+      button.tabIndex = isCollapseButton === hardwareExpanded ? 0 : -1;
     });
 }

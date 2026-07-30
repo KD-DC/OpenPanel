@@ -30,4 +30,6 @@ internal sealed record MediaShufflePayload(bool IsActive);
 
 internal sealed record NetworkExpandedPayload(bool IsExpanded);
 
+internal sealed record HardwareExpandedPayload(bool IsExpanded);
+
 internal sealed record GamingActivePayload(bool IsActive);

@@ -1,19 +1,32 @@
 import type {
   GpuSummary,
   NetworkQualitySummary,
+  ProcessUsageApplicationSummary,
+  ProcessUsageSummary,
   TelemetrySummary
 } from "../../types";
 
 export function renderCombinedSystemWidget(
   system: TelemetrySummary,
   gpu: GpuSummary,
-  network: NetworkQualitySummary
+  network: NetworkQualitySummary,
+  processes: ProcessUsageSummary
 ): string {
   const memoryPercent = percentage(system.memoryUsedGb, system.memoryTotalGb);
   const vramPercent = percentage(gpu.vramUsedGb, gpu.vramTotalGb);
   return `
     <section class="widget widget-hardware" aria-label="System and graphics monitor">
-      <span class="widget__eyebrow"><i data-lucide="microchip"></i>Hardware</span>
+      <header class="hardware-pane__header">
+        <span class="widget__eyebrow"><i data-lucide="microchip"></i>Hardware</span>
+        <button
+          type="button"
+          data-command="hardware-expand"
+          aria-expanded="false"
+          title="Open application usage"
+          aria-label="Open application usage">
+          <i data-lucide="maximize-2"></i>
+        </button>
+      </header>
       <div class="hardware-loads">
         ${load("CPU", system.cpuUsagePercent, system.cpuTemperatureCelsius)}
         ${load("GPU", gpu.gpuUsagePercent, gpu.gpuTemperatureCelsius)}
@@ -40,7 +53,83 @@ export function renderCombinedSystemWidget(
         </div>
       </div>
     </section>
+    ${renderProcessUsage(processes)}
     ${renderNetworkQuality(system, network)}
+  `;
+}
+
+function renderProcessUsage(processes: ProcessUsageSummary): string {
+  return `
+    <section class="hardware-processes" aria-label="Application CPU and memory usage">
+      <header class="hardware-processes__header">
+        <div>
+          <span><i data-lucide="microchip"></i>Hardware activity</span>
+          <strong>Application usage</strong>
+        </div>
+        <button
+          type="button"
+          data-command="hardware-expand"
+          aria-expanded="true"
+          title="Close application usage"
+          aria-label="Close application usage">
+          <i data-lucide="minimize-2"></i>
+        </button>
+      </header>
+      <div class="hardware-processes__rankings">
+        ${processRanking(
+          "Top CPU",
+          "cpu",
+          processes.topCpu,
+          application => `${application.cpuPercent.toFixed(1)}%`,
+          application => application.cpuPercent
+        )}
+        ${processRanking(
+          "Top memory",
+          "memory-stick",
+          processes.topMemory,
+          application => memorySize(application.memoryMegabytes),
+          (application, applications) =>
+            applications[0]?.memoryMegabytes
+              ? application.memoryMegabytes / applications[0].memoryMegabytes * 100
+              : 0
+        )}
+      </div>
+      <footer>
+        <i data-lucide="info"></i>
+        ${escapeHtml(processes.status)}. Samples every 2 seconds and stops when this view closes.
+      </footer>
+    </section>
+  `;
+}
+
+function processRanking(
+  label: string,
+  icon: string,
+  applications: ProcessUsageApplicationSummary[],
+  formatValue: (application: ProcessUsageApplicationSummary) => string,
+  barPercent: (
+    application: ProcessUsageApplicationSummary,
+    applications: ProcessUsageApplicationSummary[]
+  ) => number
+): string {
+  const rows = applications.length > 0
+    ? applications.map(application => {
+        const percent = Math.max(0, Math.min(100, barPercent(application, applications)));
+        return `
+          <li>
+            <span title="${escapeHtml(application.name)}">${escapeHtml(application.name)}</span>
+            <strong>${formatValue(application)}</strong>
+            <div aria-hidden="true"><span style="inline-size:${percent}%"></span></div>
+          </li>
+        `;
+      }).join("")
+    : `<li class="hardware-processes__empty">Collecting the first sample...</li>`;
+
+  return `
+    <section>
+      <header><i data-lucide="${icon}"></i><span>${label}</span></header>
+      <ol>${rows}</ol>
+    </section>
   `;
 }
 
@@ -236,6 +325,12 @@ function networkRate(megabitsPerSecond: number): string {
   }
 
   return "0 Mbps";
+}
+
+function memorySize(megabytes: number): string {
+  return megabytes >= 1024
+    ? `${(megabytes / 1024).toFixed(1)} GB`
+    : `${Math.round(megabytes)} MB`;
 }
 
 function escapeHtml(value: string): string {
