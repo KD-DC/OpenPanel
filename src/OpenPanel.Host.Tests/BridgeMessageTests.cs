@@ -102,7 +102,16 @@ public sealed class BridgeMessageTests
                 12.4,
                 1.8,
                 0,
-                "1.1.1.1"),
+                "1.1.1.1",
+                new NetworkApplicationTrafficSummary(
+                    true,
+                    true,
+                    "Live app traffic",
+                    [new NetworkApplicationSummary(
+                        4120,
+                        "Spotify",
+                        0.1,
+                        4.2)])),
             new PeripheralBatterySummary(
                 [new PeripheralBatteryDeviceSummary(
                     "logitech:c52b:1",

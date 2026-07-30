@@ -8,6 +8,7 @@ OpenPanel original source code is licensed under the MIT License.
 | --- | --- | --- |
 | LibreHardwareMonitorLib 0.9.6 | Read-only CPU, GPU, memory, and storage sensors | MPL-2.0 |
 | HidSharp 2.6.4 | Read-only Logitech HID++ peripheral battery queries | Apache-2.0 |
+| Microsoft.Diagnostics.Tracing.TraceEvent 3.2.5 | On-demand Windows ETW network-event collection | MIT |
 | Microsoft.Web.WebView2 | Embedded dashboard UI in the WPF host | Microsoft package terms |
 | NAudio.Wasapi 2.3.0 | Core Audio endpoint enumeration, volume, mute, and peak-level access | MIT |
 | Lucide 1.27.0 | Tree-shaken inline SVG metric icons | ISC |
@@ -44,6 +45,18 @@ NAudio.Wasapi brings this MIT-licensed package into the restored dependency grap
 
 - `NAudio.Core`
 
-These transitive packages are upstream requirements even though OpenPanel enables only CPU, GPU, memory, and storage hardware categories.
+Microsoft.Diagnostics.Tracing.TraceEvent brings these MIT-licensed packages
+into the restored dependency graph:
+
+- `Microsoft.Diagnostics.NETCore.Client` 0.2.510501.
+- `Microsoft.Extensions.DependencyInjection` 6.0.0 and its abstractions package.
+- `Microsoft.Extensions.Logging` 6.0.0 and its abstractions package.
+- `Microsoft.Extensions.Options` 6.0.0.
+- `Microsoft.Extensions.Primitives` 6.0.0.
+- `System.Reflection.TypeExtensions` 4.7.0.
+
+These transitive packages are upstream requirements of their direct packages.
+OpenPanel keeps both hardware categories and ETW collection narrowly scoped at
+runtime.
 
 Do not add new dependencies without updating this file and documenting why the dependency is needed.

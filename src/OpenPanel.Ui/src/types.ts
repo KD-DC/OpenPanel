@@ -103,6 +103,21 @@ export interface NetworkQualitySummary {
   jitterMs: number | null;
   packetLossPercent: number | null;
   target: string;
+  applicationTraffic: NetworkApplicationTrafficSummary;
+}
+
+export interface NetworkApplicationTrafficSummary {
+  isActive: boolean;
+  isAvailable: boolean;
+  status: string;
+  applications: NetworkApplicationSummary[];
+}
+
+export interface NetworkApplicationSummary {
+  processId: number;
+  name: string;
+  uploadMbps: number;
+  downloadMbps: number;
 }
 
 export interface PeripheralBatterySummary {

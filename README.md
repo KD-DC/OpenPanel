@@ -163,6 +163,9 @@ Low background overhead is a primary project requirement.
   of displaying them as percentages.
 - Network quality sends one small ICMP probe per second only while its expanded
   view is open.
+- Per-application network attribution starts one 2 MB real-time ETW session
+  only while Network diagnostics is expanded. It aggregates events into
+  two-second windows and stops the session immediately when the view closes.
 - PresentMon is not started until the Gaming widget's Start button is pressed.
   Stop and application exit both kill the process and terminate its named ETW
   session.
@@ -200,18 +203,18 @@ Open PowerShell in the repository root:
 downloads the pinned optional PresentMon runtime after verifying its checksum.
 `run.ps1` rebuilds the UI before launching the WPF host.
 
-PresentMon also requires the Windows account running OpenPanel to belong to the
-built-in `Performance Log Users` group (or to run as an administrator, which is
-not recommended). This is a one-time Windows permission change and takes effect
-after signing out and back in:
+PresentMon and per-application network attribution require the Windows account
+running OpenPanel to belong to the built-in `Performance Log Users` group (or
+to run as an administrator, which is not recommended). This is a one-time
+Windows permission change and takes effect after signing out and back in:
 
 ```powershell
 Add-LocalGroupMember -Group "Performance Log Users" -Member "$env:USERDOMAIN\$env:USERNAME"
 ```
 
 Run that command from an administrator PowerShell window. OpenPanel never
-elevates itself; if access is missing, the Gaming widget reports
-`Windows performance access required` and stops the collector.
+elevates itself; if access is missing, the affected widget reports that Windows
+performance access is required and leaves its collector stopped.
 
 OpenPanel appears in the Windows system tray. Double-click the tray icon, or use
 `Open OpenPanel` from its context menu, to restore the dashboard. Use the tray
@@ -290,6 +293,7 @@ src/OpenPanel.Ui/         TypeScript, HTML, and CSS dashboard
 | --- | --- |
 | LibreHardwareMonitorLib 0.9.6 | Read-only CPU, GPU, memory, and storage sensors |
 | HidSharp 2.6.4 | Read-only Logitech HID++ battery queries |
+| Microsoft.Diagnostics.Tracing.TraceEvent 3.2.5 | On-demand Windows ETW network-event collection and per-process traffic attribution |
 | Microsoft.Web.WebView2 1.0.3124.44 | Embedded dashboard surface |
 | NAudio.Wasapi 2.3.0 | Core Audio endpoints, sessions, volume, mute, and metering |
 | Lucide 1.27.0 | Tree-shaken dashboard icons |

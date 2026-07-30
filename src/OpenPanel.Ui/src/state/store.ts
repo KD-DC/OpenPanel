@@ -48,7 +48,13 @@ export const initialState: DashboardState = {
     latencyMs: null,
     jitterMs: null,
     packetLossPercent: null,
-    target: "1.1.1.1"
+    target: "1.1.1.1",
+    applicationTraffic: {
+      isActive: false,
+      isAvailable: false,
+      status: "Open to start app tracking",
+      applications: []
+    }
   },
   peripherals: {
     devices: [],

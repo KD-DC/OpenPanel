@@ -76,7 +76,20 @@ public sealed record NetworkQualitySummary(
     double? LatencyMs,
     double? JitterMs,
     double? PacketLossPercent,
-    string Target);
+    string Target,
+    NetworkApplicationTrafficSummary ApplicationTraffic);
+
+public sealed record NetworkApplicationTrafficSummary(
+    bool IsActive,
+    bool IsAvailable,
+    string Status,
+    IReadOnlyList<NetworkApplicationSummary> Applications);
+
+public sealed record NetworkApplicationSummary(
+    int ProcessId,
+    string Name,
+    double UploadMbps,
+    double DownloadMbps);
 
 public sealed record PeripheralBatterySummary(
     IReadOnlyList<PeripheralBatteryDeviceSummary> Devices,

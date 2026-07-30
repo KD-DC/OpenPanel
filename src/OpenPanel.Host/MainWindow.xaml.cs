@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private readonly SettingsService settingsService = new();
     private readonly TelemetryService telemetryService = new();
     private readonly NetworkQualityService networkQualityService = new();
+    private readonly NetworkApplicationTrafficService networkApplicationTrafficService = new();
     private readonly PeripheralBatteryService peripheralBatteryService = new();
     private readonly GamingPerformanceService gamingPerformanceService = new();
     private readonly AudioDeviceService audioDeviceService = new();
@@ -130,6 +131,7 @@ public partial class MainWindow : Window
         }
 
         gamingPerformanceService.Dispose();
+        networkApplicationTrafficService.Dispose();
         peripheralBatteryService.Dispose();
         telemetryService.Dispose();
         base.OnClosed(e);
@@ -367,6 +369,7 @@ public partial class MainWindow : Window
             case "command:network.expanded":
                 var networkExpanded = DeserializePayload<NetworkExpandedPayload>(command);
                 networkQualityService.SetActive(networkExpanded.IsExpanded);
+                networkApplicationTrafficService.SetActive(networkExpanded.IsExpanded);
                 break;
             case "command:gaming.active":
                 var gamingActive = DeserializePayload<GamingActivePayload>(command);
@@ -470,7 +473,10 @@ public partial class MainWindow : Window
                         weatherTask);
                     PostStateUpdate(
                         telemetryTask.Result,
-                        networkTask.Result,
+                        networkTask.Result with
+                        {
+                            ApplicationTraffic = networkApplicationTrafficService.GetSnapshot()
+                        },
                         peripheralTask.Result,
                         gamingPerformanceService.GetSnapshot(),
                         mediaTask.Result,

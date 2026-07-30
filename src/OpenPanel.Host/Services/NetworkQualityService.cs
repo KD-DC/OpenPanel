@@ -52,7 +52,8 @@ public sealed class NetworkQualityService
                     null,
                     null,
                     null,
-                    ProbeTarget);
+                    ProbeTarget,
+                    InactiveApplicationTraffic());
             }
 
             var sample = await ProbeAsync(cancellationToken);
@@ -87,7 +88,8 @@ public sealed class NetworkQualityService
                 metrics.LatencyMs,
                 metrics.JitterMs,
                 metrics.PacketLossPercent,
-                ProbeTarget);
+                ProbeTarget,
+                InactiveApplicationTraffic());
         }
         catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
@@ -102,7 +104,8 @@ public sealed class NetworkQualityService
                 null,
                 null,
                 null,
-                ProbeTarget);
+                ProbeTarget,
+                InactiveApplicationTraffic());
         }
         finally
         {
@@ -147,7 +150,17 @@ public sealed class NetworkQualityService
             null,
             null,
             null,
-            ProbeTarget);
+            ProbeTarget,
+            InactiveApplicationTraffic());
+    }
+
+    private static NetworkApplicationTrafficSummary InactiveApplicationTraffic()
+    {
+        return new NetworkApplicationTrafficSummary(
+            false,
+            false,
+            "Open to start app tracking",
+            []);
     }
 
     private static NetworkInterface? SelectActiveInterface()

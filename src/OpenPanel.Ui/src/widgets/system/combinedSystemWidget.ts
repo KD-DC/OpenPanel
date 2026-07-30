@@ -40,11 +40,14 @@ export function renderCombinedSystemWidget(
         </div>
       </div>
     </section>
-    ${renderNetworkQuality(network)}
+    ${renderNetworkQuality(system, network)}
   `;
 }
 
-function renderNetworkQuality(network: NetworkQualitySummary): string {
+function renderNetworkQuality(
+  system: TelemetrySummary,
+  network: NetworkQualitySummary
+): string {
   return `
     <section class="network-quality" aria-label="Network quality">
       <header class="network-quality__header">
@@ -67,6 +70,7 @@ function renderNetworkQuality(network: NetworkQualitySummary): string {
         ${qualityMetric("Packet loss", readingDecimal(network.packetLossPercent, "%"), "circle-alert")}
         ${qualityMetric("Link speed", network.linkSpeedMbps === null ? "--" : networkRate(network.linkSpeedMbps), "network")}
       </div>
+      ${renderApplicationTraffic(system, network)}
       <div class="network-quality__details">
         ${detail("Interface", network.interfaceName)}
         ${detail("Connection", network.connectionType)}
@@ -75,8 +79,66 @@ function renderNetworkQuality(network: NetworkQualitySummary): string {
       </div>
       <footer>
         <i data-lucide="info"></i>
-        Diagnostics run only while this view is open.
+        ${escapeHtml(network.applicationTraffic.status)}. Diagnostics stop when this view closes.
       </footer>
+    </section>
+  `;
+}
+
+function renderApplicationTraffic(
+  system: TelemetrySummary,
+  network: NetworkQualitySummary
+): string {
+  const apps = network.applicationTraffic.applications;
+  const downloads = [...apps]
+    .filter(app => app.downloadMbps > 0)
+    .sort((left, right) => right.downloadMbps - left.downloadMbps)
+    .slice(0, 3);
+  const uploads = [...apps]
+    .filter(app => app.uploadMbps > 0)
+    .sort((left, right) => right.uploadMbps - left.uploadMbps)
+    .slice(0, 3);
+
+  return `
+    <div class="network-apps" aria-label="Application network traffic">
+      ${applicationTrafficColumn(
+        "Download",
+        system.networkDownloadMbps,
+        downloads.map(app => ({ name: app.name, rate: app.downloadMbps })),
+        "download"
+      )}
+      ${applicationTrafficColumn(
+        "Upload",
+        system.networkUploadMbps,
+        uploads.map(app => ({ name: app.name, rate: app.uploadMbps })),
+        "upload"
+      )}
+    </div>
+  `;
+}
+
+function applicationTrafficColumn(
+  label: string,
+  totalMbps: number,
+  applications: Array<{ name: string; rate: number }>,
+  icon: string
+): string {
+  const rows = applications.length > 0
+    ? applications.map(application => `
+        <li>
+          <span title="${escapeHtml(application.name)}">${escapeHtml(application.name)}</span>
+          <strong>${networkRate(application.rate)}</strong>
+        </li>
+      `).join("")
+    : `<li class="network-apps__empty">No active application traffic</li>`;
+
+  return `
+    <section>
+      <header>
+        <span><i data-lucide="${icon}"></i>${label}</span>
+        <strong>${networkRate(totalMbps)}</strong>
+      </header>
+      <ul>${rows}</ul>
     </section>
   `;
 }
