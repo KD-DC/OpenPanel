@@ -78,7 +78,10 @@ public sealed class PeripheralBatteryServiceTests
                   "displayName": "MX Master 3",
                   "deviceType": "MOUSE",
                   "state": "ACTIVE",
-                  "capabilities": { "hasBatteryStatus": true }
+                  "capabilities": {
+                    "hasBatteryStatus": true,
+                    "battery": { "stateOfCharge": false }
+                  }
                 },
                 {
                   "id": "dev00000000",
@@ -98,6 +101,7 @@ public sealed class PeripheralBatteryServiceTests
         Assert.AreEqual("MX Master 3", devices[0].Name);
         Assert.AreEqual("Mouse", devices[0].Category);
         Assert.IsTrue(devices[0].IsConnected);
+        Assert.IsFalse(devices[0].SupportsPercentage);
     }
 
     [TestMethod]
@@ -118,10 +122,13 @@ public sealed class PeripheralBatteryServiceTests
             }
             """);
 
-        var battery = LogitechOptionsBatteryReader.ParseBattery(
-            valid.RootElement);
-        var coarseBattery = LogitechOptionsBatteryReader.ParseBattery(
-            coarseOnly.RootElement);
+        var battery = LogitechOptionsBatteryReader.InterpretBattery(
+            LogitechOptionsBatteryReader.ParseBattery(valid.RootElement)!,
+            supportsPercentage: false);
+        var coarseBattery = LogitechOptionsBatteryReader.InterpretBattery(
+            LogitechOptionsBatteryReader.ParseBattery(
+                coarseOnly.RootElement)!,
+            supportsPercentage: false);
 
         Assert.IsNotNull(battery);
         Assert.IsNull(battery.Percent);
@@ -133,7 +140,7 @@ public sealed class PeripheralBatteryServiceTests
     }
 
     [TestMethod]
-    public void LogitechOptionsAgentRejectsContradictoryDeadBattery()
+    public void LogitechOptionsAgentMapsBucketedPercentageToCoarseState()
     {
         using var document = JsonDocument.Parse("""
             {
@@ -144,8 +151,14 @@ public sealed class PeripheralBatteryServiceTests
             }
             """);
 
-        Assert.IsNull(LogitechOptionsBatteryReader.ParseBattery(
-            document.RootElement));
+        var battery = LogitechOptionsBatteryReader.InterpretBattery(
+            LogitechOptionsBatteryReader.ParseBattery(
+                document.RootElement)!,
+            supportsPercentage: false);
+
+        Assert.IsNotNull(battery);
+        Assert.IsNull(battery.Percent);
+        Assert.AreEqual("Full", battery.State);
     }
 
     [TestMethod]
@@ -159,8 +172,10 @@ public sealed class PeripheralBatteryServiceTests
             }
             """);
 
-        var battery = LogitechOptionsBatteryReader.ParseBattery(
-            document.RootElement);
+        var battery = LogitechOptionsBatteryReader.InterpretBattery(
+            LogitechOptionsBatteryReader.ParseBattery(
+                document.RootElement)!,
+            supportsPercentage: true);
 
         Assert.IsNotNull(battery);
         Assert.AreEqual(74, battery.Percent);

@@ -103,7 +103,8 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
                 id,
                 name,
                 type == "MOUSE" ? "Mouse" : "Keyboard",
-                state is "ACTIVE" or "PRESENT"));
+                state is "ACTIVE" or "PRESENT",
+                SupportsPercentage(info)));
         }
         return parsed;
     }
@@ -116,16 +117,10 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
             return null;
         }
 
-        var rawState = ReadString(payload, "level");
-        var state = NormalizeBatteryState(rawState);
-        if (!string.IsNullOrWhiteSpace(rawState) && state is null)
-        {
-            return null;
-        }
+        var state = NormalizeBatteryState(ReadString(payload, "level"));
 
         int? percent = null;
-        if (state is null &&
-            payload.TryGetProperty("percentage", out var percentage) &&
+        if (payload.TryGetProperty("percentage", out var percentage) &&
             percentage.TryGetInt32(out var percentageValue))
         {
             percent = Math.Clamp(percentageValue, 0, 100);
@@ -147,6 +142,21 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
             percent,
             charging,
             state);
+    }
+
+    internal static OptionsBattery? InterpretBattery(
+        OptionsBattery battery,
+        bool supportsPercentage)
+    {
+        if (supportsPercentage && battery.Percent.HasValue)
+        {
+            return battery with { State = null };
+        }
+
+        var state = battery.State ?? CoarseBatteryState(battery.Percent);
+        return state is null
+            ? null
+            : battery with { Percent = null, State = state };
     }
 
     private async Task RunAsync(CancellationToken cancellationToken)
@@ -241,7 +251,8 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
                         device.Id,
                         device.Name,
                         device.Category,
-                        device.IsConnected);
+                        device.IsConnected,
+                        device.SupportsPercentage);
                 }
             }
 
@@ -265,6 +276,18 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
             {
                 lock (sync)
                 {
+                    var supportsPercentage =
+                        devices.TryGetValue(
+                            battery.DeviceId,
+                            out var device) &&
+                        device.SupportsPercentage;
+                    battery = InterpretBattery(
+                        battery,
+                        supportsPercentage);
+                    if (battery is null)
+                    {
+                        return;
+                    }
                     batteries[battery.DeviceId] = new BatteryRecord(
                         battery.Percent,
                         battery.IsCharging,
@@ -419,6 +442,26 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
             value.ValueKind == JsonValueKind.True;
     }
 
+    private static bool SupportsPercentage(JsonElement info)
+    {
+        return info.TryGetProperty("capabilities", out var capabilities) &&
+            capabilities.TryGetProperty("battery", out var battery) &&
+            battery.TryGetProperty("stateOfCharge", out var stateOfCharge) &&
+            stateOfCharge.ValueKind == JsonValueKind.True;
+    }
+
+    private static string? CoarseBatteryState(int? percent)
+    {
+        return percent switch
+        {
+            null => null,
+            <= 10 => "Critical",
+            <= 30 => "Low",
+            <= 80 => "Good",
+            _ => "Full"
+        };
+    }
+
     private static string ReadString(JsonElement element, string property)
     {
         return element.TryGetProperty(property, out var value) &&
@@ -448,7 +491,8 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
         string Id,
         string Name,
         string Category,
-        bool IsConnected);
+        bool IsConnected,
+        bool SupportsPercentage);
 
     internal sealed record OptionsBattery(
         string DeviceId,
@@ -460,7 +504,8 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
         string Id,
         string Name,
         string Category,
-        bool IsConnected);
+        bool IsConnected,
+        bool SupportsPercentage);
 
     private sealed record BatteryRecord(
         int? Percent,
