@@ -1,5 +1,8 @@
 # OpenPanel
 
+<img width="1919" height="549" alt="image" src="https://github.com/user-attachments/assets/30b2d226-278c-4455-bcbc-aa25c5d96ff0" />
+
+
 [![CI](https://github.com/KD-DC/OpenPanel/actions/workflows/ci.yml/badge.svg)](https://github.com/KD-DC/OpenPanel/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-0078D4.svg)](#requirements)
