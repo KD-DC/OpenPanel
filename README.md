@@ -38,6 +38,9 @@ visible on a dedicated display.
 | Widget | Current information and controls |
 | --- | --- |
 | Hardware | CPU/GPU utilization and temperature, RAM/VRAM usage, GPU power and fans, plus live network download/upload rates |
+| Network Quality | On-demand latency, jitter, packet loss, link speed, interface, and local-address diagnostics |
+| Peripheral Batteries | Battery state for compatible Bluetooth devices and Logitech HID++ mouse/keyboard devices, with Logi Options+ device-registration fallback |
+| Gaming | Manually activated FPS, frame time, 1% low, GPU busy time, and stutter count using PresentMon |
 | Media | Artwork, source, title, artist, playback state, timeline, previous, play/pause, next, seek, and shuffle when supported |
 | Audio | Stable output-device list, default-output switching, global volume, mute, and activity |
 | Memory | Physical used/available/installed memory and committed-memory usage |
@@ -47,7 +50,7 @@ visible on a dedicated display.
 | Storage | Capacity, activity, temperature, and read/write rates for detected fixed drives |
 | Weather | Current conditions, daily high/low, feels-like temperature, humidity, wind, and U.S. AQI |
 
-The Media and Weather widgets can expand for more detail. Compact Media occupies
+The Media, Weather, and Hardware network section can expand for more detail. Compact Media occupies
 one standard widget width; expanded Media returns to its larger artwork-focused
 layout while surrounding widgets automatically reflow.
 
@@ -81,7 +84,7 @@ routing.
 ### Weather and air quality
 
 The compact Weather widget shows current conditions, today's high and low, and
-AQI. Expanded mode adds hourly precipitation and temperature, a three-day
+AQI, plus rain probability when it is above zero. Expanded mode adds hourly precipitation and temperature, a three-day
 forecast, PM2.5, PM10, and ozone.
 
 The host fetches forecast and air-quality data from Open-Meteo without an API
@@ -103,6 +106,8 @@ flowchart LR
     Media["Windows GSMTC"] --> Host
     Audio["Core Audio / NAudio"] --> Host
     Weather["Open-Meteo"] --> Host
+    Gaming["PresentMon, on demand"] --> Host
+    Batteries["Bluetooth GATT / Logitech HID++"] --> Host
 ```
 
 ### Native host
@@ -128,7 +133,9 @@ sizing are persisted in WebView2 local storage.
 Host/UI communication is constrained to the typed bridge:
 
 - Host to UI: `state:update`
-- UI to host: `command:audio.*`, `command:media.*`, and `command:system.ready`
+- UI to host: `command:audio.*`, `command:media.*`,
+  `command:network.expanded`, `command:gaming.active`, and
+  `command:system.ready`
 
 See [Architecture](docs/architecture.md) for additional implementation detail.
 
@@ -140,6 +147,12 @@ Low background overhead is a primary project requirement.
   compact audio state concurrently.
 - Storage sensors are sampled every five seconds.
 - Weather is cached for 15 minutes.
+- Peripheral batteries refresh at most once every two minutes.
+- Network quality sends one small ICMP probe per second only while its expanded
+  view is open.
+- PresentMon is not started until the Gaming widget's Start button is pressed.
+  Stop and application exit both kill the process and terminate its named ETW
+  session.
 - Capture devices and application audio sessions are queried only while the
   Audio Control Center is expanded.
 - LibreHardwareMonitor enables only CPU, GPU, memory, and storage categories.
@@ -170,8 +183,22 @@ Open PowerShell in the repository root:
 .\scripts\run.ps1
 ```
 
-`setup.ps1` installs the JavaScript packages and restores NuGet packages.
+`setup.ps1` installs the JavaScript packages, restores NuGet packages, and
+downloads the pinned optional PresentMon runtime after verifying its checksum.
 `run.ps1` rebuilds the UI before launching the WPF host.
+
+PresentMon also requires the Windows account running OpenPanel to belong to the
+built-in `Performance Log Users` group (or to run as an administrator, which is
+not recommended). This is a one-time Windows permission change and takes effect
+after signing out and back in:
+
+```powershell
+Add-LocalGroupMember -Group "Performance Log Users" -Member "$env:USERDOMAIN\$env:USERNAME"
+```
+
+Run that command from an administrator PowerShell window. OpenPanel never
+elevates itself; if access is missing, the Gaming widget reports
+`Windows performance access required` and stops the collector.
 
 OpenPanel appears in the Windows system tray. Double-click the tray icon, or use
 `Open OpenPanel` from its context menu, to restore the dashboard. Use the tray
@@ -249,11 +276,13 @@ src/OpenPanel.Ui/         TypeScript, HTML, and CSS dashboard
 | Dependency | Purpose |
 | --- | --- |
 | LibreHardwareMonitorLib 0.9.6 | Read-only CPU, GPU, memory, and storage sensors |
+| HidSharp 2.6.4 | Read-only Logitech HID++ battery queries |
 | Microsoft.Web.WebView2 1.0.3124.44 | Embedded dashboard surface |
 | NAudio.Wasapi 2.3.0 | Core Audio endpoints, sessions, volume, mute, and metering |
 | Lucide 1.27.0 | Tree-shaken dashboard icons |
 | TypeScript and Vite | UI type checking and production bundling |
 | MSTest | Host unit tests |
+| PresentMon 2.5.1 | Optional, manually activated gaming frame telemetry |
 
 Every direct and transitive dependency is documented in [NOTICE.md](NOTICE.md).
 New dependencies should be justified against the project's resource budget and

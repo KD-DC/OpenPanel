@@ -91,6 +91,39 @@ public sealed class BridgeMessageTests
             new DateTimeOffset(2026, 7, 29, 17, 0, 0, TimeSpan.FromHours(-4)));
         var payload = new DashboardStateProvider().CreateState(
             telemetry,
+            new NetworkQualitySummary(
+                true,
+                true,
+                "Online",
+                "Ethernet",
+                "Ethernet",
+                "192.168.1.20",
+                2500,
+                12.4,
+                1.8,
+                0,
+                "1.1.1.1"),
+            new PeripheralBatterySummary(
+                [new PeripheralBatteryDeviceSummary(
+                    "logitech:c52b:1",
+                    "MX Master",
+                    "Mouse",
+                    82,
+                    false,
+                    true,
+                    "Logitech HID++")],
+                DateTimeOffset.Now),
+            new GamingPerformanceSummary(
+                false,
+                true,
+                "Tap start to monitor a game",
+                "",
+                null,
+                null,
+                null,
+                null,
+                0,
+                null),
             media,
             audio,
             weather,
@@ -126,6 +159,9 @@ public sealed class BridgeMessageTests
         StringAssert.Contains(json, "\"location\":\"Washington, DC\"");
         StringAssert.Contains(json, "\"currentTemperatureFahrenheit\":81");
         StringAssert.Contains(json, "\"usAqi\":42");
+        StringAssert.Contains(json, "\"latencyMs\":12.4");
+        StringAssert.Contains(json, "\"batteryPercent\":82");
+        StringAssert.Contains(json, "\"collectorAvailable\":true");
     }
 
     [TestMethod]
@@ -157,6 +193,32 @@ public sealed class BridgeMessageTests
         Assert.IsNotNull(payload);
         Assert.AreEqual("device-2", payload.OutputId);
         Assert.IsFalse(payload.SetCommunicationsDevice);
+    }
+
+    [TestMethod]
+    public void NetworkExpandedCommandDeserializesTypedPayload()
+    {
+        const string json =
+            """{"type":"command:network.expanded","payload":{"isExpanded":true}}""";
+
+        var command = JsonSerializer.Deserialize<UiToHostMessage>(json, MessageJson.Options);
+        var payload = command?.Payload?.Deserialize<NetworkExpandedPayload>(MessageJson.Options);
+
+        Assert.IsNotNull(payload);
+        Assert.IsTrue(payload.IsExpanded);
+    }
+
+    [TestMethod]
+    public void GamingActiveCommandDeserializesTypedPayload()
+    {
+        const string json =
+            """{"type":"command:gaming.active","payload":{"isActive":false}}""";
+
+        var command = JsonSerializer.Deserialize<UiToHostMessage>(json, MessageJson.Options);
+        var payload = command?.Payload?.Deserialize<GamingActivePayload>(MessageJson.Options);
+
+        Assert.IsNotNull(payload);
+        Assert.IsFalse(payload.IsActive);
     }
 
     [TestMethod]

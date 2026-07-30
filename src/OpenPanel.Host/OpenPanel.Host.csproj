@@ -12,8 +12,18 @@
 
   <ItemGroup>
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+    <PackageReference Include="HidSharp" Version="2.6.4" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3124.44" />
     <PackageReference Include="NAudio.Wasapi" Version="2.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\tools\PresentMon\PresentMon.exe"
+             Condition="Exists('..\..\tools\PresentMon\PresentMon.exe')">
+      <Link>Tools\PresentMon.exe</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

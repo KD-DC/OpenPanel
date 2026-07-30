@@ -5,6 +5,9 @@ public sealed record DashboardState(
     GpuSummary Gpu,
     AdvancedTelemetrySummary Advanced,
     StorageSummary Storage,
+    NetworkQualitySummary Network,
+    PeripheralBatterySummary Peripherals,
+    GamingPerformanceSummary Gaming,
     MediaSummary Media,
     AudioSummary Audio,
     WeatherSummary Weather,
@@ -61,6 +64,44 @@ public sealed record StorageDeviceSummary(
     double? TemperatureCelsius,
     double? ReadMegabytesPerSecond,
     double? WriteMegabytesPerSecond);
+
+public sealed record NetworkQualitySummary(
+    bool IsActive,
+    bool IsAvailable,
+    string Status,
+    string InterfaceName,
+    string ConnectionType,
+    string LocalAddress,
+    double? LinkSpeedMbps,
+    double? LatencyMs,
+    double? JitterMs,
+    double? PacketLossPercent,
+    string Target);
+
+public sealed record PeripheralBatterySummary(
+    IReadOnlyList<PeripheralBatteryDeviceSummary> Devices,
+    DateTimeOffset? UpdatedAt);
+
+public sealed record PeripheralBatteryDeviceSummary(
+    string Id,
+    string Name,
+    string Category,
+    int? BatteryPercent,
+    bool? IsCharging,
+    bool IsConnected,
+    string Source);
+
+public sealed record GamingPerformanceSummary(
+    bool IsActive,
+    bool CollectorAvailable,
+    string Status,
+    string Application,
+    double? Fps,
+    double? FrameTimeMs,
+    double? OnePercentLowFps,
+    double? GpuBusyMs,
+    int StutterCount,
+    DateTimeOffset? StartedAt);
 
 public sealed record MediaSummary(
     string Source,

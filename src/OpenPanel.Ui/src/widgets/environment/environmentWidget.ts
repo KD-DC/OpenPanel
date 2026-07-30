@@ -34,6 +34,9 @@ export function renderEnvironmentWidget(state: WeatherSummary): string {
         <span>Low <strong>${temperature(today?.lowFahrenheit)}</strong></span>
       </div>
       <div class="environment-compact__details">
+        ${today?.precipitationProbabilityPercent
+          ? `<span class="environment-compact__rain"><i data-lucide="umbrella"></i>Rain <strong>${Math.round(today.precipitationProbabilityPercent)}%</strong></span>`
+          : ""}
         <span><i data-lucide="thermometer"></i>Feels like <strong>${temperature(state.apparentTemperatureFahrenheit)}</strong></span>
         <span><i data-lucide="droplets"></i>Humidity <strong>${number(state.humidityPercent, "%")}</strong></span>
         <span><i data-lucide="wind"></i>Wind <strong>${number(state.windSpeedMph, " mph")}</strong></span>

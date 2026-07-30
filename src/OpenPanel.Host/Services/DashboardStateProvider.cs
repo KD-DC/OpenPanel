@@ -6,6 +6,9 @@ public sealed class DashboardStateProvider
 {
     public DashboardState CreateState(
         HardwareTelemetrySnapshot telemetry,
+        NetworkQualitySummary network,
+        PeripheralBatterySummary peripherals,
+        GamingPerformanceSummary gaming,
         MediaSummary media,
         AudioSummary audio,
         WeatherSummary weather,
@@ -17,6 +20,9 @@ public sealed class DashboardStateProvider
             telemetry.Gpu,
             telemetry.Advanced,
             telemetry.Storage,
+            network,
+            peripherals,
+            gaming,
             media,
             audio,
             weather,

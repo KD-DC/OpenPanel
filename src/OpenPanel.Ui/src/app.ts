@@ -1,6 +1,9 @@
 import {
   Activity,
   AudioLines,
+  BatteryCharging,
+  BatteryMedium,
+  Bluetooth,
   Cloud,
   CloudFog,
   CloudLightning,
@@ -8,6 +11,7 @@ import {
   CloudSnow,
   CloudSun,
   Check,
+  CircleAlert,
   Cpu,
   createIcons,
   Database,
@@ -15,9 +19,12 @@ import {
   Droplets,
   Fan,
   Gauge,
+  Gamepad2,
   GripVertical,
   HardDrive,
   Headphones,
+  Info,
+  Keyboard,
   Leaf,
   MapPin,
   Maximize2,
@@ -27,12 +34,16 @@ import {
   MicOff,
   Minimize2,
   MonitorSpeaker,
+  Mouse,
   Network,
   Pause,
   Play,
+  Radio,
+  RefreshCw,
   Shuffle,
   SkipBack,
   SkipForward,
+  Square,
   Sun,
   Thermometer,
   Umbrella,
@@ -47,6 +58,8 @@ import { renderAudioOutputWidget } from "./widgets/audio-output/audioOutputWidge
 import { renderEnvironmentWidget } from "./widgets/environment/environmentWidget";
 import { renderMediaWidget } from "./widgets/media/mediaWidget";
 import { renderCombinedSystemWidget } from "./widgets/system/combinedSystemWidget";
+import { renderPeripheralBatteryWidget } from "./widgets/peripherals/peripheralBatteryWidget";
+import { renderGamingPerformanceWidget } from "./widgets/gaming/gamingPerformanceWidget";
 import {
   renderOledAudioWidget,
   renderOledMediaWidget
@@ -167,7 +180,7 @@ function renderWidgets(root: HTMLElement, state: DashboardState): void {
   updateWidget(
     root,
     "system",
-    renderCombinedSystemWidget(state.telemetry, state.gpu)
+    renderCombinedSystemWidget(state.telemetry, state.gpu, state.network)
   );
   updateWidget(
     root,
@@ -189,6 +202,8 @@ function renderWidgets(root: HTMLElement, state: DashboardState): void {
   updateWidget(root, "gpu-thermals", renderGpuThermalsWidget(state.advanced));
   updateWidget(root, "storage", renderStorageWidget(state.storage));
   updateWidget(root, "environment", renderEnvironmentWidget(state.weather));
+  updateWidget(root, "peripherals", renderPeripheralBatteryWidget(state.peripherals));
+  updateWidget(root, "gaming", renderGamingPerformanceWidget(state.gaming));
 }
 
 function renderIcons(): void {
@@ -196,7 +211,11 @@ function renderIcons(): void {
     icons: {
       Activity,
       AudioLines,
+      BatteryCharging,
+      BatteryMedium,
+      Bluetooth,
       Check,
+      CircleAlert,
       Cloud,
       CloudFog,
       CloudLightning,
@@ -209,9 +228,12 @@ function renderIcons(): void {
       Droplets,
       Fan,
       Gauge,
+      Gamepad2,
       GripVertical,
       HardDrive,
       Headphones,
+      Info,
+      Keyboard,
       Leaf,
       MapPin,
       Maximize2,
@@ -221,12 +243,16 @@ function renderIcons(): void {
       MicOff,
       Minimize2,
       MonitorSpeaker,
+      Mouse,
       Network,
       Pause,
       Play,
+      Radio,
+      RefreshCw,
       Shuffle,
       SkipBack,
       SkipForward,
+      Square,
       Sun,
       Thermometer,
       Umbrella,
@@ -266,6 +292,8 @@ function updateWidget(root: HTMLElement, name: string, markup: string): void {
   slot.dataset.markup = markup;
   if (name === "audio") {
     syncAudioExpandedState(slot);
+  } else if (name === "system") {
+    syncNetworkExpandedState(slot);
   } else if (name === "environment") {
     syncEnvironmentExpandedState(slot);
   }
@@ -477,6 +505,27 @@ function bindCommands(root: HTMLElement): void {
             slot.dataset.expanded === "true" ? "false" : "true";
           syncEnvironmentExpandedState(slot);
         }
+        break;
+      }
+      case "network-expand": {
+        const slot = target.closest<HTMLElement>("[data-widget='system']");
+        if (slot) {
+          slot.dataset.expanded =
+            slot.dataset.expanded === "true" ? "false" : "true";
+          syncNetworkExpandedState(slot);
+          postCommand({
+            type: "command:network.expanded",
+            payload: { isExpanded: slot.dataset.expanded === "true" }
+          });
+        }
+        break;
+      }
+      case "gaming-toggle": {
+        const button = target.closest<HTMLButtonElement>("[data-command]");
+        postCommand({
+          type: "command:gaming.active",
+          payload: { isActive: button?.getAttribute("aria-pressed") !== "true" }
+        });
         break;
       }
       case "media-size": {
@@ -872,6 +921,16 @@ function syncEnvironmentExpandedState(slot: HTMLElement): void {
   slot.querySelectorAll<HTMLButtonElement>("[data-command='environment-expand']")
     .forEach((button) => {
       const isCollapseButton = button.closest(".environment") !== null;
+      button.setAttribute("aria-expanded", String(isExpanded));
+      button.tabIndex = isCollapseButton === isExpanded ? 0 : -1;
+    });
+}
+
+function syncNetworkExpandedState(slot: HTMLElement): void {
+  const isExpanded = slot.dataset.expanded === "true";
+  slot.querySelectorAll<HTMLButtonElement>("[data-command='network-expand']")
+    .forEach((button) => {
+      const isCollapseButton = button.closest(".network-quality") !== null;
       button.setAttribute("aria-expanded", String(isExpanded));
       button.tabIndex = isCollapseButton === isExpanded ? 0 : -1;
     });

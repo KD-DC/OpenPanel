@@ -15,6 +15,8 @@ if (-not ($sdkList -match "^10\.")) {
     throw ".NET 10 SDK was not found. Installed SDKs:`n$sdkList"
 }
 
+& "$PSScriptRoot\setup-presentmon.ps1"
+
 Push-Location "$PSScriptRoot\..\src\OpenPanel.Ui"
 try {
     npm install

@@ -9,3 +9,4 @@ src/OpenPanel.Ui/node_modules/
 src/OpenPanel.Ui/dist/
 publish/
 *.nupkg
+tools/PresentMon/PresentMon.exe

@@ -23,6 +23,9 @@ public partial class MainWindow : Window
     private readonly DashboardStateProvider stateProvider = new();
     private readonly SettingsService settingsService = new();
     private readonly TelemetryService telemetryService = new();
+    private readonly NetworkQualityService networkQualityService = new();
+    private readonly PeripheralBatteryService peripheralBatteryService = new();
+    private readonly GamingPerformanceService gamingPerformanceService = new();
     private readonly AudioDeviceService audioDeviceService = new();
     private readonly MediaSessionService mediaSessionService = new();
     private readonly WeatherService weatherService;
@@ -126,6 +129,7 @@ public partial class MainWindow : Window
             coreWebView.NavigationCompleted -= OnNavigationCompleted;
         }
 
+        gamingPerformanceService.Dispose();
         telemetryService.Dispose();
         base.OnClosed(e);
     }
@@ -359,6 +363,16 @@ public partial class MainWindow : Window
                 var expanded = DeserializePayload<AudioExpandedPayload>(command);
                 audioDeviceService.SetExtendedState(expanded.IsExpanded);
                 break;
+            case "command:network.expanded":
+                var networkExpanded = DeserializePayload<NetworkExpandedPayload>(command);
+                networkQualityService.SetActive(networkExpanded.IsExpanded);
+                break;
+            case "command:gaming.active":
+                var gamingActive = DeserializePayload<GamingActivePayload>(command);
+                await gamingPerformanceService.SetActiveAsync(
+                    gamingActive.IsActive,
+                    cancellationToken);
+                break;
             case "command:audio.input.select":
                 var inputSelect = DeserializePayload<AudioInputSelectPayload>(command);
                 await audioDeviceService.SelectInputAsync(
@@ -440,17 +454,24 @@ public partial class MainWindow : Window
                 try
                 {
                     var telemetryTask = telemetryService.GetSnapshotAsync(cancellationToken);
+                    var networkTask = networkQualityService.GetSnapshotAsync(cancellationToken);
+                    var peripheralTask = peripheralBatteryService.GetSnapshotAsync(cancellationToken);
                     var mediaTask = mediaSessionService.GetCurrentSessionAsync(cancellationToken);
                     var audioTask = audioDeviceService.GetOutputsAsync(cancellationToken);
                     var weatherTask = weatherService.GetSnapshotAsync(cancellationToken);
 
                     await Task.WhenAll(
                         telemetryTask,
+                        networkTask,
+                        peripheralTask,
                         mediaTask,
                         audioTask,
                         weatherTask);
                     PostStateUpdate(
                         telemetryTask.Result,
+                        networkTask.Result,
+                        peripheralTask.Result,
+                        gamingPerformanceService.GetSnapshot(),
                         mediaTask.Result,
                         audioTask.Result,
                         weatherTask.Result);
@@ -470,6 +491,9 @@ public partial class MainWindow : Window
 
     private void PostStateUpdate(
         HardwareTelemetrySnapshot telemetry,
+        NetworkQualitySummary network,
+        PeripheralBatterySummary peripherals,
+        GamingPerformanceSummary gaming,
         MediaSummary media,
         AudioSummary audio,
         WeatherSummary weather)
@@ -482,6 +506,9 @@ public partial class MainWindow : Window
 
         var state = stateProvider.CreateState(
             telemetry,
+            network,
+            peripherals,
+            gaming,
             media,
             audio,
             weather,

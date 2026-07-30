@@ -7,6 +7,7 @@ OpenPanel original source code is licensed under the MIT License.
 | Dependency | Use | License |
 | --- | --- | --- |
 | LibreHardwareMonitorLib 0.9.6 | Read-only CPU, GPU, memory, and storage sensors | MPL-2.0 |
+| HidSharp 2.6.4 | Read-only Logitech HID++ peripheral battery queries | Apache-2.0 |
 | Microsoft.Web.WebView2 | Embedded dashboard UI in the WPF host | Microsoft package terms |
 | NAudio.Wasapi 2.3.0 | Core Audio endpoint enumeration, volume, mute, and peak-level access | MIT |
 | Lucide 1.27.0 | Tree-shaken inline SVG metric icons | ISC |
@@ -16,12 +17,17 @@ OpenPanel original source code is licensed under the MIT License.
 | MSTest.TestFramework | .NET unit test framework | MIT |
 | MSTest.TestAdapter | Visual Studio/dotnet test adapter | MIT |
 | Microsoft.NET.Test.Sdk | .NET test SDK | MIT |
+| PresentMon 2.5.1 | On-demand gaming frame-presentation metrics | MIT |
+
+The Logitech HID++ battery protocol implementation and voltage curve were
+adapted from the MIT-licensed
+[logitray](https://github.com/ithilias/logitray) project. OpenPanel performs
+read-only queries and does not install a Logitech background service.
 
 LibreHardwareMonitorLib brings these transitive packages into the restored dependency graph:
 
 - `BlackSharp.Core` 1.0.7: shared toolkit code, MPL-2.0.
 - `DiskInfoToolkit` 1.1.2: disk-access support, MPL-2.0.
-- `HidSharp` 2.6.4: USB HID access, Apache-2.0.
 - `Mono.Posix.NETStandard` 1.0.0: POSIX compatibility support included by the upstream package.
 - `RAMSPDToolkit-NDD` 1.4.2: RAM SPD access, MPL-2.0.
 - `System.IO.FileSystem.AccessControl` 5.0.0: filesystem access-control APIs, MIT.

@@ -14,6 +14,8 @@ export interface UiToHostMessage<TPayload = unknown> {
     | "command:audio.input.mute"
     | "command:audio.session.volume"
     | "command:audio.session.mute"
+    | "command:network.expanded"
+    | "command:gaming.active"
     | "command:media.toggle"
     | "command:media.previous"
     | "command:media.next"
@@ -28,6 +30,9 @@ export interface DashboardState {
   gpu: GpuSummary;
   advanced: AdvancedTelemetrySummary;
   storage: StorageSummary;
+  network: NetworkQualitySummary;
+  peripherals: PeripheralBatterySummary;
+  gaming: GamingPerformanceSummary;
   media: MediaSummary;
   audio: AudioSummary;
   weather: WeatherSummary;
@@ -84,6 +89,48 @@ export interface StorageDeviceSummary {
   temperatureCelsius: number | null;
   readMegabytesPerSecond: number | null;
   writeMegabytesPerSecond: number | null;
+}
+
+export interface NetworkQualitySummary {
+  isActive: boolean;
+  isAvailable: boolean;
+  status: string;
+  interfaceName: string;
+  connectionType: string;
+  localAddress: string;
+  linkSpeedMbps: number | null;
+  latencyMs: number | null;
+  jitterMs: number | null;
+  packetLossPercent: number | null;
+  target: string;
+}
+
+export interface PeripheralBatterySummary {
+  devices: PeripheralBatteryDeviceSummary[];
+  updatedAt: string | null;
+}
+
+export interface PeripheralBatteryDeviceSummary {
+  id: string;
+  name: string;
+  category: string;
+  batteryPercent: number | null;
+  isCharging: boolean | null;
+  isConnected: boolean;
+  source: string;
+}
+
+export interface GamingPerformanceSummary {
+  isActive: boolean;
+  collectorAvailable: boolean;
+  status: string;
+  application: string;
+  fps: number | null;
+  frameTimeMs: number | null;
+  onePercentLowFps: number | null;
+  gpuBusyMs: number | null;
+  stutterCount: number;
+  startedAt: string | null;
 }
 
 export interface MediaSummary {

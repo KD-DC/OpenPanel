@@ -9,7 +9,9 @@ export const widgetDefinitions = {
   "gpu-power": { label: "GPU performance", spans: { compact: 2, expanded: 2 } },
   "gpu-thermals": { label: "GPU thermals", spans: { compact: 2, expanded: 2 } },
   storage: { label: "Storage", spans: { compact: 4, expanded: 4 } },
-  environment: { label: "Weather", spans: { compact: 2, expanded: 2 } }
+  environment: { label: "Weather", spans: { compact: 2, expanded: 2 } },
+  peripherals: { label: "Peripheral batteries", spans: { compact: 2, expanded: 2 } },
+  gaming: { label: "Gaming performance", spans: { compact: 2, expanded: 2 } }
 } as const;
 
 export type WidgetId = keyof typeof widgetDefinitions;
@@ -28,7 +30,7 @@ const widgetIds = Object.keys(widgetDefinitions) as WidgetId[];
 const defaultLayout: WidgetLayout = [
   ["system", "media", "audio"],
   ["memory", "cpu-power", "gpu-power", "gpu-thermals", "storage"],
-  ["environment"]
+  ["environment", "peripherals", "gaming"]
 ];
 
 export function loadWidgetLayoutState(): WidgetLayoutState {

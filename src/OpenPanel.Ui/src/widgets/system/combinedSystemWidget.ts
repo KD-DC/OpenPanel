@@ -1,8 +1,13 @@
-import type { GpuSummary, TelemetrySummary } from "../../types";
+import type {
+  GpuSummary,
+  NetworkQualitySummary,
+  TelemetrySummary
+} from "../../types";
 
 export function renderCombinedSystemWidget(
   system: TelemetrySummary,
-  gpu: GpuSummary
+  gpu: GpuSummary,
+  network: NetworkQualitySummary
 ): string {
   const memoryPercent = percentage(system.memoryUsedGb, system.memoryTotalGb);
   const vramPercent = percentage(gpu.vramUsedGb, gpu.vramTotalGb);
@@ -20,16 +25,68 @@ export function renderCombinedSystemWidget(
         ${metric("GPU fans", reading(gpu.gpuFanRpm, "RPM"), "fan")}
       </div>
       <div class="hardware-pane__network">
-        <span class="hardware-pane__section-title">
+        <button
+          type="button"
+          class="hardware-pane__section-title hardware-pane__network-button"
+          data-command="network-expand"
+          aria-expanded="false"
+          title="Open network diagnostics">
           <i data-lucide="network"></i>Network
-        </span>
+          <i data-lucide="maximize-2"></i>
+        </button>
         <div class="hardware-pane__metrics">
           ${metric("Download", networkRate(system.networkDownloadMbps), "download")}
           ${metric("Upload", networkRate(system.networkUploadMbps), "upload")}
         </div>
       </div>
     </section>
+    ${renderNetworkQuality(network)}
   `;
+}
+
+function renderNetworkQuality(network: NetworkQualitySummary): string {
+  return `
+    <section class="network-quality" aria-label="Network quality">
+      <header class="network-quality__header">
+        <div>
+          <span><i data-lucide="radio"></i>Network quality</span>
+          <strong>${escapeHtml(network.status)}</strong>
+        </div>
+        <button
+          type="button"
+          data-command="network-expand"
+          aria-expanded="true"
+          title="Close network diagnostics"
+          aria-label="Close network diagnostics">
+          <i data-lucide="minimize-2"></i>
+        </button>
+      </header>
+      <div class="network-quality__primary">
+        ${qualityMetric("Latency", readingDecimal(network.latencyMs, "ms"), "gauge")}
+        ${qualityMetric("Jitter", readingDecimal(network.jitterMs, "ms"), "activity")}
+        ${qualityMetric("Packet loss", readingDecimal(network.packetLossPercent, "%"), "circle-alert")}
+        ${qualityMetric("Link speed", network.linkSpeedMbps === null ? "--" : networkRate(network.linkSpeedMbps), "network")}
+      </div>
+      <div class="network-quality__details">
+        ${detail("Interface", network.interfaceName)}
+        ${detail("Connection", network.connectionType)}
+        ${detail("Local address", network.localAddress)}
+        ${detail("Probe target", network.target)}
+      </div>
+      <footer>
+        <i data-lucide="info"></i>
+        Diagnostics run only while this view is open.
+      </footer>
+    </section>
+  `;
+}
+
+function qualityMetric(label: string, value: string, icon: string): string {
+  return `<div><i data-lucide="${icon}"></i><span>${label}</span><strong>${value}</strong></div>`;
+}
+
+function detail(label: string, value: string): string {
+  return `<span><small>${label}</small><strong>${escapeHtml(value)}</strong></span>`;
 }
 
 function load(label: string, percent: number, temperatureValue: number | null): string {
@@ -77,6 +134,10 @@ function reading(value: number | null, unit: string): string {
   return value === null ? "--" : `${Math.round(value)} ${unit}`;
 }
 
+function readingDecimal(value: number | null, unit: string): string {
+  return value === null ? "--" : `${value.toFixed(1)} ${unit}`;
+}
+
 function networkRate(megabitsPerSecond: number): string {
   if (megabitsPerSecond >= 1000) {
     return `${(megabitsPerSecond / 1000).toFixed(1)} Gbps`;
@@ -95,4 +156,13 @@ function networkRate(megabitsPerSecond: number): string {
   }
 
   return "0 Mbps";
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }

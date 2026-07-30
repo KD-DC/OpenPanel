@@ -1,0 +1,137 @@
+.widget-slot[data-widget="system"][data-expanded="true"] {
+  position: absolute;
+  z-index: 10;
+  inset: 14px;
+  block-size: auto;
+}
+
+.hardware-pane__network-button {
+  min-block-size: 36px;
+  inline-size: 100%;
+  justify-content: flex-start;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  text-align: start;
+}
+
+.hardware-pane__network-button svg:last-child {
+  margin-inline-start: auto;
+}
+
+.network-quality {
+  display: none;
+  block-size: 100%;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 24px;
+  border: 1px solid #263034;
+  border-radius: 6px;
+  padding: 28px 34px;
+  background: #070a0b;
+}
+
+.widget-slot[data-widget="system"][data-expanded="true"] .widget-hardware {
+  display: none;
+}
+
+.widget-slot[data-widget="system"][data-expanded="true"] .network-quality {
+  display: grid;
+}
+
+.network-quality__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.network-quality__header > div {
+  display: grid;
+  gap: 7px;
+}
+
+.network-quality__header span {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.network-quality__header strong {
+  font-size: 22px;
+}
+
+.network-quality__header button {
+  display: grid;
+  inline-size: 44px;
+  block-size: 44px;
+  place-items: center;
+  padding: 0;
+}
+
+.network-quality__primary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.network-quality__primary > div {
+  display: grid;
+  align-content: center;
+  gap: 9px;
+  border-inline-start: 3px solid var(--accent);
+  padding: 18px 22px;
+  background: #101619;
+}
+
+.network-quality__primary svg {
+  inline-size: 24px;
+  block-size: 24px;
+  color: var(--accent);
+}
+
+.network-quality__primary span,
+.network-quality__details small {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.network-quality__primary strong {
+  font-size: 34px;
+}
+
+.network-quality__details {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.network-quality__details > span {
+  display: grid;
+  gap: 7px;
+  min-inline-size: 0;
+  border-block-start: 1px solid var(--panel-border);
+  padding-block-start: 14px;
+}
+
+.network-quality__details strong {
+  overflow: hidden;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.network-quality footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.network-quality footer svg {
+  inline-size: 15px;
+  block-size: 15px;
+}

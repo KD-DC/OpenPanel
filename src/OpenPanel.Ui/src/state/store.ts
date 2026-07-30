@@ -37,6 +37,35 @@ export const initialState: DashboardState = {
   storage: {
     devices: []
   },
+  network: {
+    isActive: false,
+    isAvailable: false,
+    status: "Open to start diagnostics",
+    interfaceName: "--",
+    connectionType: "--",
+    localAddress: "--",
+    linkSpeedMbps: null,
+    latencyMs: null,
+    jitterMs: null,
+    packetLossPercent: null,
+    target: "1.1.1.1"
+  },
+  peripherals: {
+    devices: [],
+    updatedAt: null
+  },
+  gaming: {
+    isActive: false,
+    collectorAvailable: false,
+    status: "Tap start to monitor a game",
+    application: "",
+    fps: null,
+    frameTimeMs: null,
+    onePercentLowFps: null,
+    gpuBusyMs: null,
+    stutterCount: 0,
+    startedAt: null
+  },
   media: {
     source: "No session",
     title: "Waiting for host",
