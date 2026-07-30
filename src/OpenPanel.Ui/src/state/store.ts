@@ -144,6 +144,9 @@ export const initialState: DashboardState = {
   appearance: {
     theme: "mediaOled"
   },
+  widgets: {
+    items: []
+  },
   display: {
     name: "Unknown",
     left: 0,

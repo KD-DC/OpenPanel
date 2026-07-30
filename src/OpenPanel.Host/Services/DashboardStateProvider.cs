@@ -14,6 +14,7 @@ public sealed class DashboardStateProvider
         AudioSummary audio,
         WeatherSummary weather,
         string appearance,
+        WidgetConfigurationSummary widgets,
         DisplaySummary display)
     {
         return new DashboardState(
@@ -29,6 +30,7 @@ public sealed class DashboardStateProvider
             audio,
             weather,
             new AppearanceSummary(appearance),
+            widgets,
             display);
     }
 }

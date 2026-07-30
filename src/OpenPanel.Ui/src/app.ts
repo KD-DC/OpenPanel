@@ -73,6 +73,7 @@ import {
 } from "./widgets/advanced/advancedWidgets";
 import type { DashboardState } from "./types";
 import {
+  applyWidgetVisibility,
   cleanupLayout,
   findWidgetPage,
   loadWidgetLayoutState,
@@ -105,17 +106,23 @@ let pendingPointer:
 let edgeTimer: number | null = null;
 let edgeDirection = 0;
 let suppressNextClick = false;
+let widgetVisibilitySignature = "";
 type SystemExpandedView = "hardware" | "network";
 
 export function renderDashboard(root: HTMLElement, state: DashboardState): void {
   latestState = state;
   const appearance = state.appearance.theme;
   const appearanceChanged = root.dataset.appearance !== appearance;
+  const visibilityChanged = syncWidgetVisibility(root, state);
   if (appearanceChanged) {
     root.dataset.appearance = appearance;
   }
 
-  if (appearanceChanged || !root.querySelector(".dashboard-pager")) {
+  if (
+    appearanceChanged ||
+    visibilityChanged ||
+    !root.querySelector(".dashboard-pager")
+  ) {
     renderShell(root);
   }
 
@@ -126,6 +133,68 @@ export function renderDashboard(root: HTMLElement, state: DashboardState): void 
   bindCommands(root);
   bindWidgetManagement(root);
   syncManagementState(root);
+}
+
+function syncWidgetVisibility(
+  root: HTMLElement,
+  state: DashboardState
+): boolean {
+  const signature = state.widgets.items
+    .map(widget => `${widget.id}:${widget.isVisible}`)
+    .join("|");
+  if (signature === widgetVisibilitySignature) {
+    return false;
+  }
+  widgetVisibilitySignature = signature;
+
+  const visibleWidgets = new Set<WidgetId>(
+    Object.keys(widgetDefinitions) as WidgetId[]
+  );
+  for (const widget of state.widgets.items) {
+    if (isWidgetId(widget.id) && !widget.isVisible) {
+      visibleWidgets.delete(widget.id);
+    }
+  }
+
+  closeHiddenExpandedWidgets(root, visibleWidgets);
+  const nextLayout = applyWidgetVisibility(
+    widgetLayout,
+    visibleWidgets,
+    widgetSizes
+  );
+  if (JSON.stringify(nextLayout) === JSON.stringify(widgetLayout)) {
+    return false;
+  }
+
+  widgetLayout = nextLayout;
+  activePage = Math.max(0, Math.min(activePage, widgetLayout.length - 1));
+  saveLayout();
+  return true;
+}
+
+function closeHiddenExpandedWidgets(
+  root: HTMLElement,
+  visibleWidgets: ReadonlySet<WidgetId>
+): void {
+  root.querySelectorAll<HTMLElement>("[data-expanded='true']").forEach(slot => {
+    const widgetId = slot.dataset.widget;
+    if (!isWidgetId(widgetId) || visibleWidgets.has(widgetId)) {
+      return;
+    }
+
+    if (widgetId === "system") {
+      setSystemExpandedView(slot, null);
+    } else if (widgetId === "audio") {
+      slot.dataset.expanded = "false";
+      syncAudioExpandedState(slot);
+      postCommand({
+        type: "command:audio.expanded",
+        payload: { isExpanded: false }
+      });
+    } else {
+      slot.dataset.expanded = "false";
+    }
+  });
 }
 
 function renderShell(root: HTMLElement): void {

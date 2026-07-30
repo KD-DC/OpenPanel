@@ -35,6 +35,7 @@ public partial class MainWindow : Window
     private readonly Forms.ContextMenuStrip trayMenu;
     private readonly Forms.ToolStripMenuItem currentAppearanceMenuItem;
     private readonly Forms.ToolStripMenuItem mediaOledAppearanceMenuItem;
+    private readonly Dictionary<string, Forms.ToolStripMenuItem> widgetMenuItems = [];
     private readonly System.Drawing.Icon trayIconImage;
     private readonly Forms.NotifyIcon trayIcon;
 
@@ -61,9 +62,24 @@ public partial class MainWindow : Window
         appearanceMenu.DropDownItems.Add(currentAppearanceMenuItem);
         appearanceMenu.DropDownItems.Add(mediaOledAppearanceMenuItem);
         trayMenu.Items.Add(appearanceMenu);
+
+        var widgetsMenu = new Forms.ToolStripMenuItem("Widgets");
+        foreach (var widget in WidgetCatalog.All)
+        {
+            var item = new Forms.ToolStripMenuItem(widget.Label)
+            {
+                Tag = widget.Id,
+                CheckOnClick = false
+            };
+            item.Click += OnWidgetVisibility;
+            widgetMenuItems[widget.Id] = item;
+            widgetsMenu.DropDownItems.Add(item);
+        }
+        trayMenu.Items.Add(widgetsMenu);
         trayMenu.Items.Add(new Forms.ToolStripSeparator());
         trayMenu.Items.Add("Exit OpenPanel", null, OnTrayExit);
         UpdateAppearanceMenu();
+        UpdateWidgetMenu();
 
         trayIconImage = CreateTrayIcon();
         trayIcon = new Forms.NotifyIcon
@@ -185,12 +201,48 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void OnWidgetVisibility(object? sender, EventArgs e)
+    {
+        if (sender is not Forms.ToolStripMenuItem { Tag: string widgetId })
+        {
+            return;
+        }
+
+        var isVisible = settingsService.DisabledWidgets.Contains(widgetId);
+        try
+        {
+            await settingsService.SetWidgetVisibilityAsync(
+                widgetId,
+                isVisible,
+                telemetryCancellation.Token);
+            UpdateWidgetMenu();
+            AppLog.Write(
+                "widgets.visibility.changed",
+                $"{widgetId}; visible={isVisible}");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            UpdateWidgetMenu();
+            AppLog.Write(
+                "widgets.visibility.failed",
+                $"{widgetId}; {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
     private void UpdateAppearanceMenu()
     {
         currentAppearanceMenuItem.Checked =
             settingsService.Appearance == SettingsService.CurrentAppearance;
         mediaOledAppearanceMenuItem.Checked =
             settingsService.Appearance == SettingsService.MediaOledAppearance;
+    }
+
+    private void UpdateWidgetMenu()
+    {
+        foreach (var (widgetId, menuItem) in widgetMenuItems)
+        {
+            menuItem.Checked = !settingsService.DisabledWidgets.Contains(widgetId);
+        }
     }
 
     private static System.Drawing.Icon CreateTrayIcon()
@@ -537,6 +589,7 @@ public partial class MainWindow : Window
             audio,
             weather,
             settingsService.Appearance,
+            WidgetCatalog.CreateSummary(settingsService.DisabledWidgets),
             selectedDisplay);
         var message = new HostToUiMessage("state:update", state);
         var json = JsonSerializer.Serialize(message, MessageJson.Options);

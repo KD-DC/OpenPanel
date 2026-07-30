@@ -135,6 +135,35 @@ export function pageWeight(page: WidgetId[], sizes: WidgetSizes): number {
   );
 }
 
+export function applyWidgetVisibility(
+  layout: WidgetLayout,
+  visibleWidgets: ReadonlySet<WidgetId>,
+  sizes: WidgetSizes
+): WidgetLayout {
+  const next = layout
+    .map(page => page.filter(widgetId => visibleWidgets.has(widgetId)))
+    .filter(page => page.length > 0);
+  const present = new Set(next.flat());
+
+  for (const widgetId of widgetIds) {
+    if (!visibleWidgets.has(widgetId) || present.has(widgetId)) {
+      continue;
+    }
+
+    let targetPage = next.findIndex(page =>
+      pageWeight(page, sizes) + widgetSpan(widgetId, sizes) <= pageCapacity
+    );
+    if (targetPage < 0) {
+      next.push([]);
+      targetPage = next.length - 1;
+    }
+    next[targetPage]!.push(widgetId);
+    present.add(widgetId);
+  }
+
+  return cleanupLayout(next);
+}
+
 function carryOverflow(
   layout: WidgetLayout,
   pageIndex: number,

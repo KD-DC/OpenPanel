@@ -40,6 +40,7 @@ export interface DashboardState {
   audio: AudioSummary;
   weather: WeatherSummary;
   appearance: AppearanceSummary;
+  widgets: WidgetConfigurationSummary;
   display: DisplaySummary;
 }
 
@@ -270,6 +271,16 @@ export interface AirQualitySummary {
 
 export interface AppearanceSummary {
   theme: "current" | "mediaOled";
+}
+
+export interface WidgetConfigurationSummary {
+  items: WidgetVisibilitySummary[];
+}
+
+export interface WidgetVisibilitySummary {
+  id: string;
+  label: string;
+  isVisible: boolean;
 }
 
 export interface DisplaySummary {

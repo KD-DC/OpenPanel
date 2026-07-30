@@ -13,6 +13,7 @@ public sealed record DashboardState(
     AudioSummary Audio,
     WeatherSummary Weather,
     AppearanceSummary Appearance,
+    WidgetConfigurationSummary Widgets,
     DisplaySummary Display);
 
 public sealed record HardwareTelemetrySnapshot(
@@ -224,6 +225,14 @@ public sealed record AirQualitySummary(
     double? Ozone);
 
 public sealed record AppearanceSummary(string Theme);
+
+public sealed record WidgetConfigurationSummary(
+    IReadOnlyList<WidgetVisibilitySummary> Items);
+
+public sealed record WidgetVisibilitySummary(
+    string Id,
+    string Label,
+    bool IsVisible);
 
 public sealed record DisplaySummary(
     string Name,

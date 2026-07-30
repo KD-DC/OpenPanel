@@ -143,6 +143,7 @@ public sealed class BridgeMessageTests
             audio,
             weather,
             SettingsService.MediaOledAppearance,
+            WidgetCatalog.CreateSummary(new HashSet<string> { "gaming" }),
             display);
         var message = new HostToUiMessage("state:update", payload);
 
@@ -179,6 +180,9 @@ public sealed class BridgeMessageTests
         StringAssert.Contains(json, "\"memoryMegabytes\":1024");
         StringAssert.Contains(json, "\"batteryPercent\":82");
         StringAssert.Contains(json, "\"collectorAvailable\":true");
+        StringAssert.Contains(
+            json,
+            "\"id\":\"gaming\",\"label\":\"Gaming performance\",\"isVisible\":false");
     }
 
     [TestMethod]

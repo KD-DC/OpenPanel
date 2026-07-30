@@ -11,6 +11,8 @@ The host is a .NET 10 WPF app. It is responsible for:
 - Sending normalized state to the dashboard UI.
 - Receiving typed commands from the dashboard UI.
 - Owning Windows-specific services.
+- Persisting disabled widget IDs and generating the native tray configuration
+  from the central `WidgetCatalog`.
 
 The host samples hardware sensors through LibreHardwareMonitor. RAM and network rates use Windows and .NET APIs. It reads global media sessions through `GlobalSystemMediaTransportControlsSessionManager` and global output state through Core Audio/NAudio. Weather and air-quality responses are fetched through `HttpClient`, normalized in the host, and cached for 15 minutes. The normalized snapshot is sent to the UI once per second.
 

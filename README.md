@@ -54,6 +54,10 @@ Media, Weather, Hardware application usage, and the Hardware network section can
 one standard widget width; expanded Media returns to its larger artwork-focused
 layout while surrounding widgets automatically reflow.
 
+The system tray **Widgets** submenu controls which widgets appear. Every widget
+is enabled by default, and only disabled widget IDs are persisted, so newly
+added widgets appear automatically after an update.
+
 ### Media integration
 
 OpenPanel uses Windows
@@ -313,6 +317,11 @@ src/OpenPanel.Ui/         TypeScript, HTML, and CSS dashboard
 Every direct and transitive dependency is documented in [NOTICE.md](NOTICE.md).
 New dependencies should be justified against the project's resource budget and
 added to that file.
+
+When adding a widget, add its stable ID and user-facing label to
+`WidgetCatalog.All` so it appears in the tray configuration. Add the same ID to
+the TypeScript `widgetDefinitions`; the host catalog is the authoritative list
+for persisted visibility settings.
 
 ## Known Limitations
 
