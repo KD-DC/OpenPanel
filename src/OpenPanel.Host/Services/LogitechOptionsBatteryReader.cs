@@ -116,13 +116,20 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
             return null;
         }
 
+        var rawState = ReadString(payload, "level");
+        var state = NormalizeBatteryState(rawState);
+        if (!string.IsNullOrWhiteSpace(rawState) && state is null)
+        {
+            return null;
+        }
+
         int? percent = null;
-        if (payload.TryGetProperty("percentage", out var percentage) &&
+        if (state is null &&
+            payload.TryGetProperty("percentage", out var percentage) &&
             percentage.TryGetInt32(out var percentageValue))
         {
             percent = Math.Clamp(percentageValue, 0, 100);
         }
-        var state = NormalizeBatteryState(ReadString(payload, "level"));
         if (!percent.HasValue && state is null)
         {
             return null;
@@ -427,12 +434,14 @@ internal sealed class LogitechOptionsBatteryReader : IDisposable
             return null;
         }
 
-        var words = value
-            .Trim()
-            .Replace('_', ' ')
-            .Replace('-', ' ')
-            .ToLowerInvariant();
-        return char.ToUpperInvariant(words[0]) + words[1..];
+        return value.Trim().ToUpperInvariant() switch
+        {
+            "CRITICAL" => "Critical",
+            "LOW" or "LOW_BATTERY" => "Low",
+            "GOOD" => "Good",
+            "FULL" => "Full",
+            _ => null
+        };
     }
 
     internal sealed record OptionsDevice(

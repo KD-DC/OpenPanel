@@ -157,6 +157,8 @@ Low background overhead is a primary project requirement.
   connection gives exact GATT readings time to replace coarse Windows values.
 - Logitech HID++ devices that expose only four-level battery data are shown as
   `Full`, `Good`, `Low`, or `Critical` instead of a fabricated percentage.
+- Contradictory Logi Options+ fallback payloads, such as `DEAD` paired with
+  `100%`, are discarded so stale agent data cannot override direct HID++ data.
 - Network quality sends one small ICMP probe per second only while its expanded
   view is open.
 - PresentMon is not started until the Gaming widget's Start button is pressed.
