@@ -8,5 +8,6 @@ TestResults/
 src/OpenPanel.Ui/node_modules/
 src/OpenPanel.Ui/dist/
 publish/
+artifacts/
 *.nupkg
 tools/PresentMon/PresentMon.exe

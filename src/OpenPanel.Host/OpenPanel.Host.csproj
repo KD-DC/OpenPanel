@@ -6,8 +6,15 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\OpenPanel.ico</ApplicationIcon>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <RootNamespace>OpenPanel.Host</RootNamespace>
     <AssemblyName>OpenPanel.Host</AssemblyName>
+    <AssemblyTitle>OpenPanel</AssemblyTitle>
+    <Product>OpenPanel</Product>
+    <Company>OpenPanel contributors</Company>
+    <Description>Windows-native touchscreen dashboard for ultrawide secondary displays.</Description>
+    <RepositoryUrl>https://github.com/KD-DC/OpenPanel</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

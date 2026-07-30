@@ -19,6 +19,7 @@ OpenPanel original source code is licensed under the MIT License.
 | MSTest.TestAdapter | Visual Studio/dotnet test adapter | MIT |
 | Microsoft.NET.Test.Sdk | .NET test SDK | MIT |
 | PresentMon 2.5.1 | On-demand gaming frame-presentation metrics | MIT |
+| Inno Setup 6.7.3 | Build-time creation of the Windows installer; not included in the application payload | [Inno Setup License](https://jrsoftware.org/files/is/license.txt) |
 
 The Logitech HID++ battery protocol implementation and voltage curve were
 adapted from the MIT-licensed

@@ -3,6 +3,7 @@
 [![CI](https://github.com/KD-DC/OpenPanel/actions/workflows/ci.yml/badge.svg)](https://github.com/KD-DC/OpenPanel/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-0078D4.svg)](#requirements)
+[![Download](https://img.shields.io/github/v/release/KD-DC/OpenPanel?label=download)](https://github.com/KD-DC/OpenPanel/releases/latest)
 
 OpenPanel is an open-source, Windows-native touchscreen dashboard for 1920 x 550
 secondary displays. It is developed for the ASUS ProArt PA147CDV and is suitable
@@ -13,10 +14,25 @@ switching, weather, and air quality in a low-overhead interface designed to stay
 visible on a dedicated display.
 
 > [!IMPORTANT]
-> OpenPanel is under active development. It currently runs from source or a
-> framework-dependent Windows publish. An installer, Start menu registration,
-> and automatic startup are intentionally deferred until the feature set is more
-> stable.
+> OpenPanel is under active development. Preview releases are usable but may
+> change settings and layout behavior between versions.
+
+## Download
+
+Download the latest `OpenPanel-Setup-*.exe` from
+[GitHub Releases](https://github.com/KD-DC/OpenPanel/releases/latest).
+
+The installer:
+
+- Installs for the current user without administrator access.
+- Bundles the .NET 10 Desktop runtime.
+- Adds OpenPanel and its uninstaller to the Start Menu.
+- Offers optional startup and desktop shortcuts, both off by default.
+- Preserves settings under `%LOCALAPPDATA%\OpenPanel` across upgrades.
+
+OpenPanel releases are not yet Authenticode-signed, so Microsoft Defender
+SmartScreen may show an unrecognized-app warning. Each release includes a
+`.sha256` checksum alongside the installer.
 
 ## Features
 
@@ -189,13 +205,21 @@ Low background overhead is a primary project requirement.
 
 ## Requirements
 
+### Installed application
+
 - Windows 10 version 1809 or later, or Windows 11.
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) with Windows
-  Desktop support.
 - [Microsoft Edge WebView2 Evergreen Runtime](https://developer.microsoft.com/microsoft-edge/webview2/).
-- Node.js LTS with npm.
 - A 1920 x 550 display is recommended. Development and runtime testing should
   use native Windows rather than WSL.
+
+The Windows installer includes the .NET runtime. WebView2 is already installed
+on most current Windows 10 and Windows 11 systems.
+
+### Source development
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) with Windows
+  Desktop support.
+- Node.js 24 with npm.
 
 ## Quick Start
 
@@ -233,20 +257,26 @@ OpenPanel appears in the Windows system tray. Double-click the tray icon, or use
 `Open OpenPanel` from its context menu, to restore the dashboard. Use the tray
 `Appearance` menu to switch between the available visual treatments.
 
-### Build a Windows publish
+### Build the Windows installer
+
+Install [Inno Setup 6.7.3](https://jrsoftware.org/isdl.php), then run:
 
 ```powershell
-.\scripts\package.ps1
+.\scripts\package.ps1 -Version 0.1.0
 ```
 
-The framework-dependent x64 output is written to:
+The script builds the UI, creates a self-contained x64 publish, packages a
+per-user installer, and writes its SHA-256 checksum:
 
 ```text
-publish\win-x64\OpenPanel.Host.exe
+artifacts\OpenPanel-Setup-0.1.0.exe
+artifacts\OpenPanel-Setup-0.1.0.exe.sha256
 ```
 
-The packaged application still requires the .NET 10 Desktop Runtime and WebView2
-Evergreen Runtime on the target PC.
+Pushing a version tag such as `v0.1.0` runs the same packaging process in
+GitHub Actions and publishes both files on the repository's Releases page.
+The workflow downloads the official Inno Setup installer, verifies its
+Authenticode signature, and installs it only on the temporary build runner.
 
 ## Configuration
 
