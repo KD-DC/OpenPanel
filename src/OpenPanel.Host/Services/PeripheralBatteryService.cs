@@ -15,13 +15,37 @@ public sealed class PeripheralBatteryService : IDisposable
     private readonly SemaphoreSlim gate = new(1, 1);
     private readonly LogitechHidBatteryReader logitechReader = new();
     private readonly LogitechOptionsBatteryReader logitechOptionsReader = new();
+    private readonly DeviceWatcher? bluetoothWatcher;
     private PeripheralBatterySummary cached = new([], null);
     private DateTimeOffset nextRefresh;
+    private int refreshRequested = 1;
+
+    public PeripheralBatteryService()
+    {
+        try
+        {
+            bluetoothWatcher = DeviceInformation.CreateWatcher(
+                BluetoothLEDevice.GetDeviceSelectorFromPairingState(true),
+                [ConnectedProperty, BatteryLifeProperty],
+                DeviceInformationKind.AssociationEndpoint);
+            bluetoothWatcher.Added += OnBluetoothAdded;
+            bluetoothWatcher.Updated += OnBluetoothUpdated;
+            bluetoothWatcher.Removed += OnBluetoothRemoved;
+            bluetoothWatcher.Start();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write(
+                "peripherals.watcher.failed",
+                $"{ex.GetType().Name}: {ex.Message}");
+        }
+    }
 
     public async Task<PeripheralBatterySummary> GetSnapshotAsync(
         CancellationToken cancellationToken)
     {
-        if (DateTimeOffset.UtcNow < nextRefresh)
+        if (Volatile.Read(ref refreshRequested) == 0 &&
+            DateTimeOffset.UtcNow < nextRefresh)
         {
             return WithOptionsBatteryReadings(cached);
         }
@@ -29,11 +53,13 @@ public sealed class PeripheralBatteryService : IDisposable
         await gate.WaitAsync(cancellationToken);
         try
         {
-            if (DateTimeOffset.UtcNow < nextRefresh)
+            if (Volatile.Read(ref refreshRequested) == 0 &&
+                DateTimeOffset.UtcNow < nextRefresh)
             {
                 return WithOptionsBatteryReadings(cached);
             }
 
+            Interlocked.Exchange(ref refreshRequested, 0);
             var standardTask = ReadBluetoothDevicesAsync(cancellationToken);
             var logitechTask = logitechReader.ReadAsync(cancellationToken);
             await Task.WhenAll(standardTask, logitechTask);
@@ -77,8 +103,50 @@ public sealed class PeripheralBatteryService : IDisposable
 
     public void Dispose()
     {
+        if (bluetoothWatcher is not null)
+        {
+            bluetoothWatcher.Added -= OnBluetoothAdded;
+            bluetoothWatcher.Updated -= OnBluetoothUpdated;
+            bluetoothWatcher.Removed -= OnBluetoothRemoved;
+            if (bluetoothWatcher.Status is
+                DeviceWatcherStatus.Started or
+                DeviceWatcherStatus.EnumerationCompleted)
+            {
+                bluetoothWatcher.Stop();
+            }
+        }
         logitechOptionsReader.Dispose();
         gate.Dispose();
+    }
+
+    private void OnBluetoothAdded(
+        DeviceWatcher sender,
+        DeviceInformation device)
+    {
+        RequestRefresh();
+    }
+
+    private void OnBluetoothUpdated(
+        DeviceWatcher sender,
+        DeviceInformationUpdate update)
+    {
+        if (update.Properties.ContainsKey(ConnectedProperty) ||
+            update.Properties.ContainsKey(BatteryLifeProperty))
+        {
+            RequestRefresh();
+        }
+    }
+
+    private void OnBluetoothRemoved(
+        DeviceWatcher sender,
+        DeviceInformationUpdate update)
+    {
+        RequestRefresh();
+    }
+
+    private void RequestRefresh()
+    {
+        Interlocked.Exchange(ref refreshRequested, 1);
     }
 
     private PeripheralBatterySummary WithOptionsBatteryReadings(
@@ -205,6 +273,9 @@ public sealed class PeripheralBatteryService : IDisposable
                         null,
                         device.ConnectionStatus ==
                             BluetoothConnectionStatus.Connected);
+                AppLog.Write(
+                    "peripherals.gatt.battery",
+                    $"{device.Name}={battery}%");
             }
             catch (Exception) when (!cancellationToken.IsCancellationRequested)
             {
