@@ -10,17 +10,20 @@ export function renderEnvironmentWidget(state: WeatherSummary): string {
   const condition = weatherCondition(state.weatherCode);
 
   return `
+    <button
+      class="environment-resize"
+      type="button"
+      data-command="environment-expand"
+      title="Expand weather"
+      aria-label="Expand weather"
+      aria-expanded="false">
+      <i class="environment-resize__expand" data-lucide="maximize-2"></i>
+      <i class="environment-resize__collapse" data-lucide="minimize-2"></i>
+    </button>
+
     <section class="environment-compact widget ${aqiLevel(state.airQuality.usAqi)}" aria-label="Weather">
       <header class="environment-compact__header">
         <span><i data-lucide="map-pin"></i>${escapeHtml(state.location)}</span>
-        <button
-          type="button"
-          data-command="environment-expand"
-          title="Expand weather"
-          aria-label="Expand weather"
-          aria-expanded="false">
-          <i data-lucide="maximize-2"></i>
-        </button>
       </header>
       <div class="environment-compact__current">
         <i data-lucide="${condition.icon}"></i>
@@ -34,6 +37,9 @@ export function renderEnvironmentWidget(state: WeatherSummary): string {
         <span>Low <strong>${temperature(today?.lowFahrenheit)}</strong></span>
       </div>
       <div class="environment-compact__details">
+        ${today?.precipitationProbabilityPercent
+          ? `<span class="environment-compact__rain"><i data-lucide="umbrella"></i>Rain <strong>${Math.round(today.precipitationProbabilityPercent)}%</strong></span>`
+          : ""}
         <span><i data-lucide="thermometer"></i>Feels like <strong>${temperature(state.apparentTemperatureFahrenheit)}</strong></span>
         <span><i data-lucide="droplets"></i>Humidity <strong>${number(state.humidityPercent, "%")}</strong></span>
         <span><i data-lucide="wind"></i>Wind <strong>${number(state.windSpeedMph, " mph")}</strong></span>
@@ -52,14 +58,6 @@ export function renderEnvironmentWidget(state: WeatherSummary): string {
           <span><i data-lucide="map-pin"></i>${escapeHtml(state.location)}</span>
           <div class="environment__header-actions">
             <small>${state.isStale ? "Cached" : state.status}</small>
-            <button
-              type="button"
-              data-command="environment-expand"
-              title="Collapse weather"
-              aria-label="Collapse weather"
-              aria-expanded="true">
-              <i data-lucide="minimize-2"></i>
-            </button>
           </div>
         </header>
         <div class="environment__current-main">

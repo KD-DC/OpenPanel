@@ -14,6 +14,10 @@ export interface UiToHostMessage<TPayload = unknown> {
     | "command:audio.input.mute"
     | "command:audio.session.volume"
     | "command:audio.session.mute"
+    | "command:hardware.expanded"
+    | "command:network.expanded"
+    | "command:network.permission"
+    | "command:gaming.active"
     | "command:media.toggle"
     | "command:media.previous"
     | "command:media.next"
@@ -28,10 +32,15 @@ export interface DashboardState {
   gpu: GpuSummary;
   advanced: AdvancedTelemetrySummary;
   storage: StorageSummary;
+  network: NetworkQualitySummary;
+  processes: ProcessUsageSummary;
+  peripherals: PeripheralBatterySummary;
+  gaming: GamingPerformanceSummary;
   media: MediaSummary;
   audio: AudioSummary;
   weather: WeatherSummary;
   appearance: AppearanceSummary;
+  widgets: WidgetConfigurationSummary;
   display: DisplaySummary;
 }
 
@@ -84,6 +93,78 @@ export interface StorageDeviceSummary {
   temperatureCelsius: number | null;
   readMegabytesPerSecond: number | null;
   writeMegabytesPerSecond: number | null;
+}
+
+export interface NetworkQualitySummary {
+  isActive: boolean;
+  isAvailable: boolean;
+  status: string;
+  interfaceName: string;
+  connectionType: string;
+  localAddress: string;
+  linkSpeedMbps: number | null;
+  latencyMs: number | null;
+  jitterMs: number | null;
+  packetLossPercent: number | null;
+  target: string;
+  applicationTraffic: NetworkApplicationTrafficSummary;
+}
+
+export interface NetworkApplicationTrafficSummary {
+  isActive: boolean;
+  isAvailable: boolean;
+  requiresPermission: boolean;
+  status: string;
+  applications: NetworkApplicationSummary[];
+}
+
+export interface NetworkApplicationSummary {
+  processId: number;
+  name: string;
+  uploadMbps: number;
+  downloadMbps: number;
+}
+
+export interface ProcessUsageSummary {
+  isActive: boolean;
+  status: string;
+  topCpu: ProcessUsageApplicationSummary[];
+  topMemory: ProcessUsageApplicationSummary[];
+}
+
+export interface ProcessUsageApplicationSummary {
+  name: string;
+  cpuPercent: number;
+  memoryMegabytes: number;
+}
+
+export interface PeripheralBatterySummary {
+  devices: PeripheralBatteryDeviceSummary[];
+  updatedAt: string | null;
+}
+
+export interface PeripheralBatteryDeviceSummary {
+  id: string;
+  name: string;
+  category: string;
+  batteryPercent: number | null;
+  batteryState: string | null;
+  isCharging: boolean | null;
+  isConnected: boolean;
+  source: string;
+}
+
+export interface GamingPerformanceSummary {
+  isActive: boolean;
+  collectorAvailable: boolean;
+  status: string;
+  application: string;
+  fps: number | null;
+  frameTimeMs: number | null;
+  onePercentLowFps: number | null;
+  gpuBusyMs: number | null;
+  stutterCount: number;
+  startedAt: string | null;
 }
 
 export interface MediaSummary {
@@ -190,6 +271,16 @@ export interface AirQualitySummary {
 
 export interface AppearanceSummary {
   theme: "current" | "mediaOled";
+}
+
+export interface WidgetConfigurationSummary {
+  items: WidgetVisibilitySummary[];
+}
+
+export interface WidgetVisibilitySummary {
+  id: string;
+  label: string;
+  isVisible: boolean;
 }
 
 export interface DisplaySummary {

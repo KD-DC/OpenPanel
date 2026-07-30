@@ -1,0 +1,187 @@
+.widget-peripherals,
+.widget-gaming {
+  overflow: hidden;
+  gap: 16px;
+}
+
+.peripheral-list {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+.peripheral-device {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border-block-end: 1px solid var(--panel-border);
+  padding: 9px 0 12px;
+}
+
+.peripheral-device > svg {
+  inline-size: 22px;
+  block-size: 22px;
+  color: var(--accent);
+}
+
+.peripheral-device > div {
+  display: grid;
+  min-inline-size: 0;
+  gap: 4px;
+}
+
+.peripheral-device > div > span {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.peripheral-device small,
+.peripheral-footer,
+.peripheral-empty span {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.peripheral-device [role="meter"] {
+  overflow: hidden;
+  block-size: 5px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.peripheral-device [role="meter"] span {
+  display: block;
+  block-size: 100%;
+  background: var(--accent);
+}
+
+.peripheral-device > strong {
+  font-size: 16px;
+}
+
+.peripheral-device > strong.is-text-state {
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.peripheral-device.is-disconnected {
+  opacity: 0.55;
+}
+
+.peripheral-empty {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  padding: 72px 10px 20px;
+  text-align: center;
+}
+
+.peripheral-empty svg {
+  inline-size: 42px;
+  block-size: 42px;
+  color: var(--text-secondary);
+}
+
+.peripheral-footer {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-block-start: auto;
+}
+
+.peripheral-footer svg {
+  inline-size: 13px;
+  block-size: 13px;
+}
+
+.gaming-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gaming-header button {
+  display: inline-flex;
+  min-inline-size: 92px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+}
+
+.gaming-header button svg {
+  inline-size: 17px;
+  block-size: 17px;
+}
+
+.widget-gaming.is-active .gaming-header button {
+  border-color: #e0646f;
+  color: #f08a93;
+}
+
+.gaming-hero {
+  display: grid;
+  gap: 8px;
+  padding-block: 30px 18px;
+}
+
+.gaming-hero strong {
+  font-size: 51px;
+  line-height: 1;
+}
+
+.gaming-hero span {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gaming-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.gaming-metrics > span {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.gaming-metrics small {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.gaming-metrics strong {
+  font-size: 17px;
+}
+
+.gaming-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-block-start: auto;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.gaming-status > span {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background: #606b70;
+}
+
+.gaming-status > span.is-live {
+  background: #5bd49b;
+  box-shadow: 0 0 0 4px rgba(91, 212, 155, 0.12);
+}

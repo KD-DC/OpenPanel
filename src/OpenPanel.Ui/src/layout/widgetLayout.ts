@@ -9,7 +9,9 @@ export const widgetDefinitions = {
   "gpu-power": { label: "GPU performance", spans: { compact: 2, expanded: 2 } },
   "gpu-thermals": { label: "GPU thermals", spans: { compact: 2, expanded: 2 } },
   storage: { label: "Storage", spans: { compact: 4, expanded: 4 } },
-  environment: { label: "Weather", spans: { compact: 2, expanded: 2 } }
+  environment: { label: "Weather", spans: { compact: 2, expanded: 2 } },
+  peripherals: { label: "Peripheral batteries", spans: { compact: 2, expanded: 2 } },
+  gaming: { label: "Gaming performance", spans: { compact: 2, expanded: 2 } }
 } as const;
 
 export type WidgetId = keyof typeof widgetDefinitions;
@@ -28,7 +30,7 @@ const widgetIds = Object.keys(widgetDefinitions) as WidgetId[];
 const defaultLayout: WidgetLayout = [
   ["system", "media", "audio"],
   ["memory", "cpu-power", "gpu-power", "gpu-thermals", "storage"],
-  ["environment"]
+  ["environment", "peripherals", "gaming"]
 ];
 
 export function loadWidgetLayoutState(): WidgetLayoutState {
@@ -131,6 +133,35 @@ export function pageWeight(page: WidgetId[], sizes: WidgetSizes): number {
     (total, widgetId) => total + widgetSpan(widgetId, sizes),
     0
   );
+}
+
+export function applyWidgetVisibility(
+  layout: WidgetLayout,
+  visibleWidgets: ReadonlySet<WidgetId>,
+  sizes: WidgetSizes
+): WidgetLayout {
+  const next = layout
+    .map(page => page.filter(widgetId => visibleWidgets.has(widgetId)))
+    .filter(page => page.length > 0);
+  const present = new Set(next.flat());
+
+  for (const widgetId of widgetIds) {
+    if (!visibleWidgets.has(widgetId) || present.has(widgetId)) {
+      continue;
+    }
+
+    let targetPage = next.findIndex(page =>
+      pageWeight(page, sizes) + widgetSpan(widgetId, sizes) <= pageCapacity
+    );
+    if (targetPage < 0) {
+      next.push([]);
+      targetPage = next.length - 1;
+    }
+    next[targetPage]!.push(widgetId);
+    present.add(widgetId);
+  }
+
+  return cleanupLayout(next);
 }
 
 function carryOverflow(

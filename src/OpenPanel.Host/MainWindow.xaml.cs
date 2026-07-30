@@ -23,6 +23,11 @@ public partial class MainWindow : Window
     private readonly DashboardStateProvider stateProvider = new();
     private readonly SettingsService settingsService = new();
     private readonly TelemetryService telemetryService = new();
+    private readonly NetworkQualityService networkQualityService = new();
+    private readonly NetworkApplicationTrafficService networkApplicationTrafficService = new();
+    private readonly ProcessUsageService processUsageService = new();
+    private readonly PeripheralBatteryService peripheralBatteryService = new();
+    private readonly GamingPerformanceService gamingPerformanceService = new();
     private readonly AudioDeviceService audioDeviceService = new();
     private readonly MediaSessionService mediaSessionService = new();
     private readonly WeatherService weatherService;
@@ -30,6 +35,7 @@ public partial class MainWindow : Window
     private readonly Forms.ContextMenuStrip trayMenu;
     private readonly Forms.ToolStripMenuItem currentAppearanceMenuItem;
     private readonly Forms.ToolStripMenuItem mediaOledAppearanceMenuItem;
+    private readonly Dictionary<string, Forms.ToolStripMenuItem> widgetMenuItems = [];
     private readonly System.Drawing.Icon trayIconImage;
     private readonly Forms.NotifyIcon trayIcon;
 
@@ -56,9 +62,24 @@ public partial class MainWindow : Window
         appearanceMenu.DropDownItems.Add(currentAppearanceMenuItem);
         appearanceMenu.DropDownItems.Add(mediaOledAppearanceMenuItem);
         trayMenu.Items.Add(appearanceMenu);
+
+        var widgetsMenu = new Forms.ToolStripMenuItem("Widgets");
+        foreach (var widget in WidgetCatalog.All)
+        {
+            var item = new Forms.ToolStripMenuItem(widget.Label)
+            {
+                Tag = widget.Id,
+                CheckOnClick = false
+            };
+            item.Click += OnWidgetVisibility;
+            widgetMenuItems[widget.Id] = item;
+            widgetsMenu.DropDownItems.Add(item);
+        }
+        trayMenu.Items.Add(widgetsMenu);
         trayMenu.Items.Add(new Forms.ToolStripSeparator());
         trayMenu.Items.Add("Exit OpenPanel", null, OnTrayExit);
         UpdateAppearanceMenu();
+        UpdateWidgetMenu();
 
         trayIconImage = CreateTrayIcon();
         trayIcon = new Forms.NotifyIcon
@@ -126,6 +147,9 @@ public partial class MainWindow : Window
             coreWebView.NavigationCompleted -= OnNavigationCompleted;
         }
 
+        gamingPerformanceService.Dispose();
+        networkApplicationTrafficService.Dispose();
+        peripheralBatteryService.Dispose();
         telemetryService.Dispose();
         base.OnClosed(e);
     }
@@ -177,12 +201,48 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void OnWidgetVisibility(object? sender, EventArgs e)
+    {
+        if (sender is not Forms.ToolStripMenuItem { Tag: string widgetId })
+        {
+            return;
+        }
+
+        var isVisible = settingsService.DisabledWidgets.Contains(widgetId);
+        try
+        {
+            await settingsService.SetWidgetVisibilityAsync(
+                widgetId,
+                isVisible,
+                telemetryCancellation.Token);
+            UpdateWidgetMenu();
+            AppLog.Write(
+                "widgets.visibility.changed",
+                $"{widgetId}; visible={isVisible}");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            UpdateWidgetMenu();
+            AppLog.Write(
+                "widgets.visibility.failed",
+                $"{widgetId}; {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
     private void UpdateAppearanceMenu()
     {
         currentAppearanceMenuItem.Checked =
             settingsService.Appearance == SettingsService.CurrentAppearance;
         mediaOledAppearanceMenuItem.Checked =
             settingsService.Appearance == SettingsService.MediaOledAppearance;
+    }
+
+    private void UpdateWidgetMenu()
+    {
+        foreach (var (widgetId, menuItem) in widgetMenuItems)
+        {
+            menuItem.Checked = !settingsService.DisabledWidgets.Contains(widgetId);
+        }
     }
 
     private static System.Drawing.Icon CreateTrayIcon()
@@ -359,6 +419,28 @@ public partial class MainWindow : Window
                 var expanded = DeserializePayload<AudioExpandedPayload>(command);
                 audioDeviceService.SetExtendedState(expanded.IsExpanded);
                 break;
+            case "command:network.expanded":
+                var networkExpanded = DeserializePayload<NetworkExpandedPayload>(command);
+                networkQualityService.SetActive(networkExpanded.IsExpanded);
+                networkApplicationTrafficService.SetActive(networkExpanded.IsExpanded);
+                break;
+            case "command:hardware.expanded":
+                var hardwareExpanded = DeserializePayload<HardwareExpandedPayload>(command);
+                processUsageService.SetActive(hardwareExpanded.IsExpanded);
+                break;
+            case "command:network.permission":
+                if (await NetworkProviderPermissionService.RequestGrantAsync(cancellationToken))
+                {
+                    networkApplicationTrafficService.SetActive(false);
+                    networkApplicationTrafficService.SetActive(true);
+                }
+                break;
+            case "command:gaming.active":
+                var gamingActive = DeserializePayload<GamingActivePayload>(command);
+                await gamingPerformanceService.SetActiveAsync(
+                    gamingActive.IsActive,
+                    cancellationToken);
+                break;
             case "command:audio.input.select":
                 var inputSelect = DeserializePayload<AudioInputSelectPayload>(command);
                 await audioDeviceService.SelectInputAsync(
@@ -440,17 +522,30 @@ public partial class MainWindow : Window
                 try
                 {
                     var telemetryTask = telemetryService.GetSnapshotAsync(cancellationToken);
+                    var networkTask = networkQualityService.GetSnapshotAsync(cancellationToken);
+                    var processTask = processUsageService.GetSnapshotAsync(cancellationToken);
+                    var peripheralTask = peripheralBatteryService.GetSnapshotAsync(cancellationToken);
                     var mediaTask = mediaSessionService.GetCurrentSessionAsync(cancellationToken);
                     var audioTask = audioDeviceService.GetOutputsAsync(cancellationToken);
                     var weatherTask = weatherService.GetSnapshotAsync(cancellationToken);
 
                     await Task.WhenAll(
                         telemetryTask,
+                        networkTask,
+                        processTask,
+                        peripheralTask,
                         mediaTask,
                         audioTask,
                         weatherTask);
                     PostStateUpdate(
                         telemetryTask.Result,
+                        networkTask.Result with
+                        {
+                            ApplicationTraffic = networkApplicationTrafficService.GetSnapshot()
+                        },
+                        processTask.Result,
+                        peripheralTask.Result,
+                        gamingPerformanceService.GetSnapshot(),
                         mediaTask.Result,
                         audioTask.Result,
                         weatherTask.Result);
@@ -470,6 +565,10 @@ public partial class MainWindow : Window
 
     private void PostStateUpdate(
         HardwareTelemetrySnapshot telemetry,
+        NetworkQualitySummary network,
+        ProcessUsageSummary processes,
+        PeripheralBatterySummary peripherals,
+        GamingPerformanceSummary gaming,
         MediaSummary media,
         AudioSummary audio,
         WeatherSummary weather)
@@ -482,10 +581,15 @@ public partial class MainWindow : Window
 
         var state = stateProvider.CreateState(
             telemetry,
+            network,
+            processes,
+            peripherals,
+            gaming,
             media,
             audio,
             weather,
             settingsService.Appearance,
+            WidgetCatalog.CreateSummary(settingsService.DisabledWidgets),
             selectedDisplay);
         var message = new HostToUiMessage("state:update", state);
         var json = JsonSerializer.Serialize(message, MessageJson.Options);

@@ -11,6 +11,8 @@ The host is a .NET 10 WPF app. It is responsible for:
 - Sending normalized state to the dashboard UI.
 - Receiving typed commands from the dashboard UI.
 - Owning Windows-specific services.
+- Persisting disabled widget IDs and generating the native tray configuration
+  from the central `WidgetCatalog`.
 
 The host samples hardware sensors through LibreHardwareMonitor. RAM and network rates use Windows and .NET APIs. It reads global media sessions through `GlobalSystemMediaTransportControlsSessionManager` and global output state through Core Audio/NAudio. Weather and air-quality responses are fetched through `HttpClient`, normalized in the host, and cached for 15 minutes. The normalized snapshot is sent to the UI once per second.
 
@@ -43,7 +45,7 @@ UI-to-host command messages use a `command:*` type and optional payload. Impleme
 
 ## Resource Use
 
-The UI avoids React and graphing libraries. A single non-overlapping one-second loop collects telemetry, audio, and media state concurrently. LibreHardwareMonitor enables only CPU, GPU, and memory categories. Missing sensors or platform sessions are represented as unavailable states rather than retried aggressively.
+The UI avoids React and graphing libraries. A single non-overlapping one-second loop collects telemetry, audio, and media state concurrently. LibreHardwareMonitor enables only CPU, GPU, and memory categories. The application-usage sampler enumerates processes at most once every two seconds and computes CPU deltas plus working-set memory only while Hardware application usage is expanded; closing the view clears its baseline and cached rankings. Per-process network traffic uses a real-time ETW session only while Network diagnostics is expanded; the session is stopped immediately when that view closes. If the kernel network provider denies access, the UI offers a deliberate one-time permission action that launches the same executable with `runas`, grants the current user only provider-enable access, exits, and retries from the non-admin dashboard process. Missing sensors or platform sessions are represented as unavailable states rather than retried aggressively.
 
 Extended audio sessions are queried only while the expanded Audio Control Center
 is visible. Weather returns its cached snapshot between 15-minute refreshes and

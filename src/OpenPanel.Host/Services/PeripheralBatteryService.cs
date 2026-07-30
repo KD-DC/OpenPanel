@@ -1,0 +1,554 @@
+using Windows.Devices.Bluetooth;
+using Windows.Devices.Bluetooth.GenericAttributeProfile;
+using Windows.Devices.Enumeration;
+using Windows.Storage.Streams;
+using OpenPanel.Host.Models;
+
+namespace OpenPanel.Host.Services;
+
+public sealed class PeripheralBatteryService : IDisposable
+{
+    private const string BatteryLifeProperty = "System.Devices.BatteryLife";
+    private const string ConnectedProperty = "System.Devices.Aep.IsConnected";
+    private static readonly TimeSpan RefreshInterval = TimeSpan.FromMinutes(2);
+
+    private readonly SemaphoreSlim gate = new(1, 1);
+    private readonly LogitechHidBatteryReader logitechReader = new();
+    private readonly LogitechOptionsBatteryReader logitechOptionsReader = new();
+    private readonly CancellationTokenSource watcherCancellation = new();
+    private readonly DeviceWatcher? bluetoothWatcher;
+    private PeripheralBatterySummary cached = new([], null);
+    private DateTimeOffset nextRefresh;
+    private int delayedRefreshScheduled;
+    private int refreshRequested = 1;
+
+    public PeripheralBatteryService()
+    {
+        try
+        {
+            bluetoothWatcher = DeviceInformation.CreateWatcher(
+                BluetoothLEDevice.GetDeviceSelectorFromPairingState(true),
+                [ConnectedProperty, BatteryLifeProperty],
+                DeviceInformationKind.AssociationEndpoint);
+            bluetoothWatcher.Added += OnBluetoothAdded;
+            bluetoothWatcher.Updated += OnBluetoothUpdated;
+            bluetoothWatcher.Removed += OnBluetoothRemoved;
+            bluetoothWatcher.Start();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write(
+                "peripherals.watcher.failed",
+                $"{ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    public async Task<PeripheralBatterySummary> GetSnapshotAsync(
+        CancellationToken cancellationToken)
+    {
+        if (Volatile.Read(ref refreshRequested) == 0 &&
+            DateTimeOffset.UtcNow < nextRefresh)
+        {
+            return WithOptionsBatteryReadings(cached);
+        }
+
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            if (Volatile.Read(ref refreshRequested) == 0 &&
+                DateTimeOffset.UtcNow < nextRefresh)
+            {
+                return WithOptionsBatteryReadings(cached);
+            }
+
+            Interlocked.Exchange(ref refreshRequested, 0);
+            var standardTask = ReadBluetoothDevicesAsync(cancellationToken);
+            var logitechTask = logitechReader.ReadAsync(cancellationToken);
+            await Task.WhenAll(standardTask, logitechTask);
+            var logitechDevices = logitechTask.Result;
+
+            var devices = standardTask.Result
+                .Concat(logitechDevices)
+                .Where(HasBatteryData)
+                .GroupBy(DeviceKey, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group
+                    .OrderByDescending(device => device.BatteryPercent.HasValue)
+                    .First())
+                .OrderBy(device => device.Category)
+                .ThenBy(device => device.Name, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            cached = new PeripheralBatterySummary(devices, DateTimeOffset.Now);
+            nextRefresh = DateTimeOffset.UtcNow + RefreshInterval;
+            AppLog.Write(
+                "peripherals.refreshed",
+                devices.Length == 0
+                    ? "no compatible devices"
+                    : string.Join(
+                        "; ",
+                        devices.Select(device =>
+                            $"{device.Name}={BatteryValue(device)} ({device.Source})")));
+            return WithOptionsBatteryReadings(cached);
+        }
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            AppLog.Write(
+                "peripherals.refresh.failed",
+                $"{ex.GetType().Name}: {ex.Message}");
+            nextRefresh = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30);
+            return cached;
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    public void Dispose()
+    {
+        if (bluetoothWatcher is not null)
+        {
+            bluetoothWatcher.Added -= OnBluetoothAdded;
+            bluetoothWatcher.Updated -= OnBluetoothUpdated;
+            bluetoothWatcher.Removed -= OnBluetoothRemoved;
+            if (bluetoothWatcher.Status is
+                DeviceWatcherStatus.Started or
+                DeviceWatcherStatus.EnumerationCompleted)
+            {
+                bluetoothWatcher.Stop();
+            }
+        }
+        logitechOptionsReader.Dispose();
+        watcherCancellation.Cancel();
+        gate.Dispose();
+    }
+
+    private void OnBluetoothAdded(
+        DeviceWatcher sender,
+        DeviceInformation device)
+    {
+        RequestRefresh();
+    }
+
+    private void OnBluetoothUpdated(
+        DeviceWatcher sender,
+        DeviceInformationUpdate update)
+    {
+        if (update.Properties.ContainsKey(ConnectedProperty) ||
+            update.Properties.ContainsKey(BatteryLifeProperty))
+        {
+            RequestRefresh();
+        }
+        if (update.Properties.TryGetValue(
+                ConnectedProperty,
+                out var connected) &&
+            connected is true)
+        {
+            ScheduleDelayedRefresh();
+        }
+    }
+
+    private void OnBluetoothRemoved(
+        DeviceWatcher sender,
+        DeviceInformationUpdate update)
+    {
+        RequestRefresh();
+    }
+
+    private void RequestRefresh()
+    {
+        Interlocked.Exchange(ref refreshRequested, 1);
+    }
+
+    private void ScheduleDelayedRefresh()
+    {
+        if (Interlocked.Exchange(ref delayedRefreshScheduled, 1) != 0)
+        {
+            return;
+        }
+        _ = RequestDelayedRefreshAsync(watcherCancellation.Token);
+    }
+
+    private async Task RequestDelayedRefreshAsync(
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
+            RequestRefresh();
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            Interlocked.Exchange(ref delayedRefreshScheduled, 0);
+        }
+    }
+
+    private PeripheralBatterySummary WithOptionsBatteryReadings(
+        PeripheralBatterySummary snapshot)
+    {
+        var devices = snapshot.Devices
+            .Concat(logitechOptionsReader.GetSnapshot())
+            .Where(HasBatteryData)
+            .GroupBy(DeviceKey, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group
+                .OrderByDescending(device => device.BatteryPercent.HasValue)
+                .ThenByDescending(device =>
+                    !string.IsNullOrWhiteSpace(device.BatteryState))
+                .First())
+            .OrderBy(device => device.Category)
+            .ThenBy(device => device.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        return new PeripheralBatterySummary(devices, snapshot.UpdatedAt);
+    }
+
+    private static bool HasBatteryData(
+        PeripheralBatteryDeviceSummary device)
+    {
+        return device.BatteryPercent.HasValue ||
+            !string.IsNullOrWhiteSpace(device.BatteryState);
+    }
+
+    private static string BatteryValue(
+        PeripheralBatteryDeviceSummary device)
+    {
+        return device.BatteryPercent.HasValue
+            ? $"{device.BatteryPercent}%"
+            : device.BatteryState ?? "unknown";
+    }
+
+    private static string DeviceKey(PeripheralBatteryDeviceSummary device)
+    {
+        var normalizedName = RemoveIdentityPrefix(device.Name);
+        var name = new string(normalizedName
+            .Where(char.IsLetterOrDigit)
+            .Select(char.ToUpperInvariant)
+            .ToArray());
+        return $"{device.Category}:{name}";
+    }
+
+    internal static string RemoveIdentityPrefix(string name)
+    {
+        var prefixes = new[]
+        {
+            "Wireless Keyboard ",
+            "Wireless Mouse ",
+            "Logitech "
+        };
+        foreach (var prefix in prefixes)
+        {
+            if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return name[prefix.Length..].Trim();
+            }
+        }
+        return name.Trim();
+    }
+
+    private static async Task<IReadOnlyList<PeripheralBatteryDeviceSummary>>
+        ReadBluetoothDevicesAsync(CancellationToken cancellationToken)
+    {
+        var requestedProperties = new[]
+        {
+            BatteryLifeProperty,
+            ConnectedProperty
+        };
+        var found = new Dictionary<string, PeripheralBatteryDeviceSummary>(
+            StringComparer.OrdinalIgnoreCase);
+
+        await AddClassicBluetoothDevicesAsync(
+            found,
+            requestedProperties,
+            cancellationToken);
+        await AddBluetoothLeDevicesAsync(
+            found,
+            requestedProperties,
+            cancellationToken);
+        await AddGattBatteryServicesAsync(found, cancellationToken);
+        return found.Values.ToArray();
+    }
+
+    private static async Task AddGattBatteryServicesAsync(
+        IDictionary<string, PeripheralBatteryDeviceSummary> found,
+        CancellationToken cancellationToken)
+    {
+        var selector = GattDeviceService.GetDeviceSelectorFromUuid(
+            GattServiceUuids.Battery);
+        var services = await DeviceInformation.FindAllAsync(selector);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        foreach (var info in services)
+        {
+            try
+            {
+                using var service = await GattDeviceService.FromIdAsync(info.Id);
+                cancellationToken.ThrowIfCancellationRequested();
+                var device = service?.Device;
+                if (service is null ||
+                    device is null ||
+                    string.IsNullOrWhiteSpace(device.Name) ||
+                    Category(device.Name) == "Other")
+                {
+                    continue;
+                }
+
+                var battery = await TryReadGattBatteryAsync(
+                    service,
+                    cancellationToken);
+                if (!battery.HasValue)
+                {
+                    continue;
+                }
+
+                found[NormalizeBluetoothId(device.DeviceId, device.Name)] =
+                    CreateDevice(
+                        device.DeviceId,
+                        device.Name,
+                        battery,
+                        null,
+                        device.ConnectionStatus ==
+                            BluetoothConnectionStatus.Connected);
+                AppLog.Write(
+                    "peripherals.gatt.battery",
+                    $"{device.Name}={battery}%");
+            }
+            catch (Exception) when (!cancellationToken.IsCancellationRequested)
+            {
+                // A sleeping device can disappear while services are enumerated.
+            }
+        }
+    }
+
+    private static async Task AddClassicBluetoothDevicesAsync(
+        IDictionary<string, PeripheralBatteryDeviceSummary> found,
+        IEnumerable<string> requestedProperties,
+        CancellationToken cancellationToken)
+    {
+        var selector = BluetoothDevice.GetDeviceSelectorFromPairingState(true);
+        var devices = await DeviceInformation.FindAllAsync(
+            selector,
+            requestedProperties,
+            DeviceInformationKind.AssociationEndpoint);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        foreach (var device in devices.Where(IsRelevantPeripheral))
+        {
+            var connected = GetBoolean(device.Properties, ConnectedProperty);
+            var battery = GetBatteryPercent(device.Properties);
+            found[NormalizeBluetoothId(device.Id, device.Name)] =
+                CreateDevice(device.Id, device.Name, battery, null, connected);
+        }
+    }
+
+    private static async Task AddBluetoothLeDevicesAsync(
+        IDictionary<string, PeripheralBatteryDeviceSummary> found,
+        IEnumerable<string> requestedProperties,
+        CancellationToken cancellationToken)
+    {
+        var selector = BluetoothLEDevice.GetDeviceSelectorFromPairingState(true);
+        var devices = await DeviceInformation.FindAllAsync(
+            selector,
+            requestedProperties,
+            DeviceInformationKind.AssociationEndpoint);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        foreach (var info in devices.Where(IsRelevantPeripheral))
+        {
+            var connected = GetBoolean(info.Properties, ConnectedProperty);
+            var battery = GetBatteryPercent(info.Properties);
+            if (connected)
+            {
+                var gattBattery = await TryReadGattBatteryAsync(
+                    info.Id,
+                    cancellationToken);
+                battery = gattBattery ?? battery;
+            }
+
+            found[NormalizeBluetoothId(info.Id, info.Name)] =
+                CreateDevice(info.Id, info.Name, battery, null, connected);
+        }
+    }
+
+    private static async Task<int?> TryReadGattBatteryAsync(
+        string deviceId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var device = await BluetoothLEDevice.FromIdAsync(deviceId);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (device is null ||
+                device.ConnectionStatus != BluetoothConnectionStatus.Connected)
+            {
+                return null;
+            }
+
+            var services = await device.GetGattServicesForUuidAsync(
+                GattServiceUuids.Battery,
+                BluetoothCacheMode.Uncached);
+            if (services.Status != GattCommunicationStatus.Success)
+            {
+                return null;
+            }
+
+            foreach (var service in services.Services)
+            {
+                using (service)
+                {
+                    var battery = await TryReadGattBatteryAsync(
+                        service,
+                        cancellationToken);
+                    if (battery.HasValue)
+                    {
+                        return battery;
+                    }
+                }
+            }
+        }
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Bluetooth devices can sleep or disconnect during a GATT query.
+        }
+
+        return null;
+    }
+
+    private static async Task<int?> TryReadGattBatteryAsync(
+        GattDeviceService service,
+        CancellationToken cancellationToken)
+    {
+        var characteristics = await service.GetCharacteristicsForUuidAsync(
+            GattCharacteristicUuids.BatteryLevel,
+            BluetoothCacheMode.Uncached);
+        if (characteristics.Status != GattCommunicationStatus.Success)
+        {
+            return null;
+        }
+
+        foreach (var characteristic in characteristics.Characteristics)
+        {
+            var result = await characteristic.ReadValueAsync(
+                BluetoothCacheMode.Uncached);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (result.Status != GattCommunicationStatus.Success ||
+                result.Value.Length == 0)
+            {
+                continue;
+            }
+
+            using var reader = DataReader.FromBuffer(result.Value);
+            return Math.Clamp((int)reader.ReadByte(), 0, 100);
+        }
+        return null;
+    }
+
+    private static PeripheralBatteryDeviceSummary CreateDevice(
+        string id,
+        string name,
+        int? battery,
+        bool? charging,
+        bool connected)
+    {
+        return new PeripheralBatteryDeviceSummary(
+            NormalizeBluetoothId(id, name),
+            CleanBluetoothName(name),
+            Category(name),
+            battery,
+            charging,
+            connected,
+            "Windows Bluetooth");
+    }
+
+    private static bool IsRelevantPeripheral(DeviceInformation device)
+    {
+        return !string.IsNullOrWhiteSpace(device.Name) &&
+            Category(device.Name) != "Other";
+    }
+
+    private static bool GetBoolean(
+        IReadOnlyDictionary<string, object> properties,
+        string name)
+    {
+        return properties.TryGetValue(name, out var value) &&
+            value is bool result &&
+            result;
+    }
+
+    private static int? GetBatteryPercent(
+        IReadOnlyDictionary<string, object> properties)
+    {
+        if (!properties.TryGetValue(BatteryLifeProperty, out var value) ||
+            value is null)
+        {
+            return null;
+        }
+
+        return value switch
+        {
+            byte number => number,
+            sbyte number => Math.Clamp((int)number, 0, 100),
+            short number => Math.Clamp((int)number, 0, 100),
+            ushort number => Math.Clamp((int)number, 0, 100),
+            int number => Math.Clamp(number, 0, 100),
+            uint number => (int)Math.Clamp(number, 0u, 100u),
+            _ => null
+        };
+    }
+
+    private static string NormalizeBluetoothId(string id, string name)
+    {
+        var address = new string(id
+            .Where(Uri.IsHexDigit)
+            .TakeLast(12)
+            .ToArray());
+        return address.Length == 12
+            ? $"bluetooth:{address.ToUpperInvariant()}"
+            : $"bluetooth:{CleanBluetoothName(name).ToUpperInvariant()}";
+    }
+
+    private static string CleanBluetoothName(string name)
+    {
+        return name.StartsWith("LE-", StringComparison.OrdinalIgnoreCase)
+            ? name[3..]
+            : name;
+    }
+
+    internal static string Category(string name)
+    {
+        if (ContainsAny(
+                name,
+                "mouse",
+                "trackball",
+                "master",
+                "anywhere",
+                "lift",
+                "superlight",
+                "g502",
+                "g703",
+                "g903"))
+        {
+            return "Mouse";
+        }
+        if (ContainsAny(name, "keyboard", "keys", "craft", "k780", "g915"))
+        {
+            return "Keyboard";
+        }
+        if (ContainsAny(name, "headphone", "headset", "earbuds", "bose"))
+        {
+            return "Headphones";
+        }
+        if (ContainsAny(name, "controller", "gamepad", "xbox", "dualsense"))
+        {
+            return "Controller";
+        }
+
+        return "Other";
+    }
+
+    private static bool ContainsAny(string value, params string[] candidates)
+    {
+        return candidates.Any(candidate =>
+            value.Contains(candidate, StringComparison.OrdinalIgnoreCase));
+    }
+}

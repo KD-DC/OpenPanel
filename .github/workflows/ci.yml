@@ -62,12 +62,16 @@ jobs:
       - name: Test .NET
         run: dotnet test src/OpenPanel.sln -c Release --no-restore
 
+      - name: Download verified PresentMon runtime
+        shell: powershell
+        run: .\scripts\setup-presentmon.ps1
+
       - name: Publish Windows package
         run: >
           dotnet publish src/OpenPanel.Host/OpenPanel.Host.csproj
           -c Release
           -r win-x64
-          --self-contained false
+          --self-contained true
           --no-restore
           -o publish/win-x64
 

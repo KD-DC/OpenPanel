@@ -1,6 +1,9 @@
 import {
   Activity,
   AudioLines,
+  BatteryCharging,
+  BatteryMedium,
+  Bluetooth,
   Cloud,
   CloudFog,
   CloudLightning,
@@ -8,6 +11,7 @@ import {
   CloudSnow,
   CloudSun,
   Check,
+  CircleAlert,
   Cpu,
   createIcons,
   Database,
@@ -15,9 +19,12 @@ import {
   Droplets,
   Fan,
   Gauge,
+  Gamepad2,
   GripVertical,
   HardDrive,
   Headphones,
+  Info,
+  Keyboard,
   Leaf,
   MapPin,
   Maximize2,
@@ -27,12 +34,16 @@ import {
   MicOff,
   Minimize2,
   MonitorSpeaker,
+  Mouse,
   Network,
   Pause,
   Play,
+  Radio,
+  RefreshCw,
   Shuffle,
   SkipBack,
   SkipForward,
+  Square,
   Sun,
   Thermometer,
   Umbrella,
@@ -47,6 +58,8 @@ import { renderAudioOutputWidget } from "./widgets/audio-output/audioOutputWidge
 import { renderEnvironmentWidget } from "./widgets/environment/environmentWidget";
 import { renderMediaWidget } from "./widgets/media/mediaWidget";
 import { renderCombinedSystemWidget } from "./widgets/system/combinedSystemWidget";
+import { renderPeripheralBatteryWidget } from "./widgets/peripherals/peripheralBatteryWidget";
+import { renderGamingPerformanceWidget } from "./widgets/gaming/gamingPerformanceWidget";
 import {
   renderOledAudioWidget,
   renderOledMediaWidget
@@ -60,6 +73,7 @@ import {
 } from "./widgets/advanced/advancedWidgets";
 import type { DashboardState } from "./types";
 import {
+  applyWidgetVisibility,
   cleanupLayout,
   findWidgetPage,
   loadWidgetLayoutState,
@@ -92,16 +106,23 @@ let pendingPointer:
 let edgeTimer: number | null = null;
 let edgeDirection = 0;
 let suppressNextClick = false;
+let widgetVisibilitySignature = "";
+type SystemExpandedView = "hardware" | "network";
 
 export function renderDashboard(root: HTMLElement, state: DashboardState): void {
   latestState = state;
   const appearance = state.appearance.theme;
   const appearanceChanged = root.dataset.appearance !== appearance;
+  const visibilityChanged = syncWidgetVisibility(root, state);
   if (appearanceChanged) {
     root.dataset.appearance = appearance;
   }
 
-  if (appearanceChanged || !root.querySelector(".dashboard-pager")) {
+  if (
+    appearanceChanged ||
+    visibilityChanged ||
+    !root.querySelector(".dashboard-pager")
+  ) {
     renderShell(root);
   }
 
@@ -112,6 +133,68 @@ export function renderDashboard(root: HTMLElement, state: DashboardState): void 
   bindCommands(root);
   bindWidgetManagement(root);
   syncManagementState(root);
+}
+
+function syncWidgetVisibility(
+  root: HTMLElement,
+  state: DashboardState
+): boolean {
+  const signature = state.widgets.items
+    .map(widget => `${widget.id}:${widget.isVisible}`)
+    .join("|");
+  if (signature === widgetVisibilitySignature) {
+    return false;
+  }
+  widgetVisibilitySignature = signature;
+
+  const visibleWidgets = new Set<WidgetId>(
+    Object.keys(widgetDefinitions) as WidgetId[]
+  );
+  for (const widget of state.widgets.items) {
+    if (isWidgetId(widget.id) && !widget.isVisible) {
+      visibleWidgets.delete(widget.id);
+    }
+  }
+
+  closeHiddenExpandedWidgets(root, visibleWidgets);
+  const nextLayout = applyWidgetVisibility(
+    widgetLayout,
+    visibleWidgets,
+    widgetSizes
+  );
+  if (JSON.stringify(nextLayout) === JSON.stringify(widgetLayout)) {
+    return false;
+  }
+
+  widgetLayout = nextLayout;
+  activePage = Math.max(0, Math.min(activePage, widgetLayout.length - 1));
+  saveLayout();
+  return true;
+}
+
+function closeHiddenExpandedWidgets(
+  root: HTMLElement,
+  visibleWidgets: ReadonlySet<WidgetId>
+): void {
+  root.querySelectorAll<HTMLElement>("[data-expanded='true']").forEach(slot => {
+    const widgetId = slot.dataset.widget;
+    if (!isWidgetId(widgetId) || visibleWidgets.has(widgetId)) {
+      return;
+    }
+
+    if (widgetId === "system") {
+      setSystemExpandedView(slot, null);
+    } else if (widgetId === "audio") {
+      slot.dataset.expanded = "false";
+      syncAudioExpandedState(slot);
+      postCommand({
+        type: "command:audio.expanded",
+        payload: { isExpanded: false }
+      });
+    } else {
+      slot.dataset.expanded = "false";
+    }
+  });
 }
 
 function renderShell(root: HTMLElement): void {
@@ -167,7 +250,12 @@ function renderWidgets(root: HTMLElement, state: DashboardState): void {
   updateWidget(
     root,
     "system",
-    renderCombinedSystemWidget(state.telemetry, state.gpu)
+    renderCombinedSystemWidget(
+      state.telemetry,
+      state.gpu,
+      state.network,
+      state.processes
+    )
   );
   updateWidget(
     root,
@@ -189,6 +277,25 @@ function renderWidgets(root: HTMLElement, state: DashboardState): void {
   updateWidget(root, "gpu-thermals", renderGpuThermalsWidget(state.advanced));
   updateWidget(root, "storage", renderStorageWidget(state.storage));
   updateWidget(root, "environment", renderEnvironmentWidget(state.weather));
+  const peripheralSlot = root.querySelector<HTMLElement>(
+    "[data-widget=\"peripherals\"]"
+  );
+  if (peripheralSlot) {
+    const hasBatteryData = state.peripherals.devices.some(
+      (device) =>
+        device.batteryPercent !== null ||
+        device.batteryState !== null
+    );
+    peripheralSlot.hidden = !hasBatteryData;
+    if (hasBatteryData) {
+      updateWidget(
+        root,
+        "peripherals",
+        renderPeripheralBatteryWidget(state.peripherals)
+      );
+    }
+  }
+  updateWidget(root, "gaming", renderGamingPerformanceWidget(state.gaming));
 }
 
 function renderIcons(): void {
@@ -196,7 +303,11 @@ function renderIcons(): void {
     icons: {
       Activity,
       AudioLines,
+      BatteryCharging,
+      BatteryMedium,
+      Bluetooth,
       Check,
+      CircleAlert,
       Cloud,
       CloudFog,
       CloudLightning,
@@ -209,9 +320,12 @@ function renderIcons(): void {
       Droplets,
       Fan,
       Gauge,
+      Gamepad2,
       GripVertical,
       HardDrive,
       Headphones,
+      Info,
+      Keyboard,
       Leaf,
       MapPin,
       Maximize2,
@@ -221,12 +335,16 @@ function renderIcons(): void {
       MicOff,
       Minimize2,
       MonitorSpeaker,
+      Mouse,
       Network,
       Pause,
       Play,
+      Radio,
+      RefreshCw,
       Shuffle,
       SkipBack,
       SkipForward,
+      Square,
       Sun,
       Thermometer,
       Umbrella,
@@ -244,7 +362,11 @@ function renderIcons(): void {
 
 function updateWidget(root: HTMLElement, name: string, markup: string): void {
   const slot = root.querySelector<HTMLElement>(`[data-widget="${name}"]`);
-  if (!slot || slot.dataset.markup === markup) {
+  if (
+    !slot ||
+    slot.dataset.markup === markup ||
+    slot.dataset.pointerActive === "true"
+  ) {
     return;
   }
 
@@ -266,6 +388,8 @@ function updateWidget(root: HTMLElement, name: string, markup: string): void {
   slot.dataset.markup = markup;
   if (name === "audio") {
     syncAudioExpandedState(slot);
+  } else if (name === "system") {
+    syncSystemExpandedState(slot);
   } else if (name === "environment") {
     syncEnvironmentExpandedState(slot);
   }
@@ -479,6 +603,31 @@ function bindCommands(root: HTMLElement): void {
         }
         break;
       }
+      case "network-expand": {
+        const slot = target.closest<HTMLElement>("[data-widget='system']");
+        if (slot) {
+          toggleSystemExpandedView(slot, "network");
+        }
+        break;
+      }
+      case "hardware-expand": {
+        const slot = target.closest<HTMLElement>("[data-widget='system']");
+        if (slot) {
+          toggleSystemExpandedView(slot, "hardware");
+        }
+        break;
+      }
+      case "network-permission":
+        postCommand({ type: "command:network.permission" });
+        break;
+      case "gaming-toggle": {
+        const button = target.closest<HTMLButtonElement>("[data-command]");
+        postCommand({
+          type: "command:gaming.active",
+          payload: { isActive: button?.getAttribute("aria-pressed") !== "true" }
+        });
+        break;
+      }
       case "media-size": {
         const resized = resizeWidget(
           widgetLayout,
@@ -596,6 +745,8 @@ function bindWidgetManagement(root: HTMLElement): void {
       return;
     }
 
+    slot.dataset.pointerActive = "true";
+
     if (isManaging) {
       event.preventDefault();
       beginWidgetDrag(root, widgetId, event.pointerId);
@@ -648,6 +799,12 @@ function bindWidgetManagement(root: HTMLElement): void {
     if (dragPointerId === event.pointerId) {
       finishWidgetDrag(root);
     }
+    window.setTimeout(() => {
+      root.querySelectorAll<HTMLElement>("[data-pointer-active='true']")
+        .forEach((slot) => {
+          delete slot.dataset.pointerActive;
+        });
+    }, 100);
   };
   root.addEventListener("pointerup", finishPointer, { capture: true });
   root.addEventListener("pointercancel", finishPointer, { capture: true });
@@ -664,6 +821,11 @@ function beginWidgetDrag(
   suppressNextClick = true;
   clearEdgeTimer();
   root.querySelectorAll<HTMLElement>("[data-expanded='true']").forEach((slot) => {
+    if (slot.dataset.widget === "system") {
+      setSystemExpandedView(slot, null);
+      return;
+    }
+
     slot.dataset.expanded = "false";
     if (slot.dataset.widget === "audio") {
       syncAudioExpandedState(slot);
@@ -869,10 +1031,95 @@ function syncAudioExpandedState(slot: HTMLElement): void {
 
 function syncEnvironmentExpandedState(slot: HTMLElement): void {
   const isExpanded = slot.dataset.expanded === "true";
-  slot.querySelectorAll<HTMLButtonElement>("[data-command='environment-expand']")
+  const button = slot.querySelector<HTMLButtonElement>(
+    "[data-command='environment-expand']"
+  );
+  button?.setAttribute("aria-expanded", String(isExpanded));
+  button?.setAttribute(
+    "aria-label",
+    isExpanded ? "Collapse weather" : "Expand weather"
+  );
+  button?.setAttribute(
+    "title",
+    isExpanded ? "Collapse weather" : "Expand weather"
+  );
+}
+
+function toggleSystemExpandedView(
+  slot: HTMLElement,
+  view: SystemExpandedView
+): void {
+  const current = currentSystemExpandedView(slot);
+  setSystemExpandedView(slot, current === view ? null : view);
+}
+
+function setSystemExpandedView(
+  slot: HTMLElement,
+  view: SystemExpandedView | null
+): void {
+  const current = currentSystemExpandedView(slot);
+  if (current === view) {
+    syncSystemExpandedState(slot);
+    return;
+  }
+
+  if (current === "network") {
+    postCommand({
+      type: "command:network.expanded",
+      payload: { isExpanded: false }
+    });
+  } else if (current === "hardware") {
+    postCommand({
+      type: "command:hardware.expanded",
+      payload: { isExpanded: false }
+    });
+  }
+
+  slot.dataset.expanded = String(view !== null);
+  if (view === null) {
+    delete slot.dataset.expandedView;
+  } else {
+    slot.dataset.expandedView = view;
+  }
+  syncSystemExpandedState(slot);
+
+  if (view === "network") {
+    postCommand({
+      type: "command:network.expanded",
+      payload: { isExpanded: true }
+    });
+  } else if (view === "hardware") {
+    postCommand({
+      type: "command:hardware.expanded",
+      payload: { isExpanded: true }
+    });
+  }
+}
+
+function currentSystemExpandedView(
+  slot: HTMLElement
+): SystemExpandedView | null {
+  if (slot.dataset.expanded !== "true") {
+    return null;
+  }
+
+  return slot.dataset.expandedView === "hardware" ? "hardware" : "network";
+}
+
+function syncSystemExpandedState(slot: HTMLElement): void {
+  const view = currentSystemExpandedView(slot);
+  slot.querySelectorAll<HTMLButtonElement>("[data-command='network-expand']")
     .forEach((button) => {
-      const isCollapseButton = button.closest(".environment") !== null;
-      button.setAttribute("aria-expanded", String(isExpanded));
-      button.tabIndex = isCollapseButton === isExpanded ? 0 : -1;
+      const isCollapseButton = button.closest(".network-quality") !== null;
+      const networkExpanded = view === "network";
+      button.setAttribute("aria-expanded", String(networkExpanded));
+      button.tabIndex = isCollapseButton === networkExpanded ? 0 : -1;
+    });
+  slot.querySelectorAll<HTMLButtonElement>("[data-command='hardware-expand']")
+    .forEach((button) => {
+      const isCollapseButton = button.closest(".hardware-processes") !== null;
+      const hardwareExpanded = view === "hardware";
+      button.setAttribute("aria-expanded", String(hardwareExpanded));
+      button.tabIndex = isCollapseButton === hardwareExpanded ? 0 : -1;
     });
 }

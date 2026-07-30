@@ -7,7 +7,12 @@ public interface ISettingsService
 {
     string Appearance { get; }
     WeatherLocationSettings WeatherLocation { get; }
+    IReadOnlySet<string> DisabledWidgets { get; }
     Task SetAppearanceAsync(string appearance, CancellationToken cancellationToken);
+    Task SetWidgetVisibilityAsync(
+        string widgetId,
+        bool isVisible,
+        CancellationToken cancellationToken);
 }
 
 public sealed record WeatherLocationSettings(
@@ -43,10 +48,14 @@ public sealed class SettingsService : ISettingsService
         WeatherLocation = IsValidWeatherLocation(settings?.WeatherLocation)
             ? settings!.WeatherLocation!
             : DefaultWeatherLocation;
+        DisabledWidgets = new HashSet<string>(
+            settings?.DisabledWidgets?.Where(WidgetCatalog.Contains) ?? [],
+            StringComparer.Ordinal);
     }
 
     public string Appearance { get; private set; }
     public WeatherLocationSettings WeatherLocation { get; }
+    public IReadOnlySet<string> DisabledWidgets { get; private set; }
 
     public async Task SetAppearanceAsync(
         string appearance,
@@ -65,17 +74,59 @@ public sealed class SettingsService : ISettingsService
             return;
         }
 
+        await SaveAsync(
+            appearance,
+            DisabledWidgets,
+            cancellationToken);
+        Appearance = appearance;
+    }
+
+    public async Task SetWidgetVisibilityAsync(
+        string widgetId,
+        bool isVisible,
+        CancellationToken cancellationToken)
+    {
+        if (!WidgetCatalog.Contains(widgetId))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(widgetId),
+                widgetId,
+                "OpenPanel does not contain the requested widget.");
+        }
+
+        var disabled = new HashSet<string>(
+            DisabledWidgets,
+            StringComparer.Ordinal);
+        var changed = isVisible
+            ? disabled.Remove(widgetId)
+            : disabled.Add(widgetId);
+        if (!changed)
+        {
+            return;
+        }
+
+        await SaveAsync(Appearance, disabled, cancellationToken);
+        DisabledWidgets = disabled;
+    }
+
+    private async Task SaveAsync(
+        string appearance,
+        IReadOnlySet<string> disabledWidgets,
+        CancellationToken cancellationToken)
+    {
         var directory = Path.GetDirectoryName(settingsPath) ??
             throw new InvalidOperationException("The settings path has no directory.");
         Directory.CreateDirectory(directory);
 
         var temporaryPath = settingsPath + ".tmp";
         var json = JsonSerializer.Serialize(
-            new PersistedSettings(appearance, WeatherLocation),
+            new PersistedSettings(
+                appearance,
+                WeatherLocation,
+                disabledWidgets.OrderBy(widgetId => widgetId).ToArray()),
             JsonOptions);
         await File.WriteAllTextAsync(temporaryPath, json, cancellationToken);
         File.Move(temporaryPath, settingsPath, true);
-        Appearance = appearance;
     }
 
     private PersistedSettings? LoadSettings()
@@ -117,5 +168,6 @@ public sealed class SettingsService : ISettingsService
 
     private sealed record PersistedSettings(
         string Appearance,
-        WeatherLocationSettings? WeatherLocation);
+        WeatherLocationSettings? WeatherLocation,
+        IReadOnlyList<string>? DisabledWidgets = null);
 }

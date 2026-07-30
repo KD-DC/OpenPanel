@@ -7,6 +7,8 @@ OpenPanel original source code is licensed under the MIT License.
 | Dependency | Use | License |
 | --- | --- | --- |
 | LibreHardwareMonitorLib 0.9.6 | Read-only CPU, GPU, memory, and storage sensors | MPL-2.0 |
+| HidSharp 2.6.4 | Read-only Logitech HID++ peripheral battery queries | Apache-2.0 |
+| Microsoft.Diagnostics.Tracing.TraceEvent 3.2.5 | On-demand Windows ETW network-event collection | MIT |
 | Microsoft.Web.WebView2 | Embedded dashboard UI in the WPF host | Microsoft package terms |
 | NAudio.Wasapi 2.3.0 | Core Audio endpoint enumeration, volume, mute, and peak-level access | MIT |
 | Lucide 1.27.0 | Tree-shaken inline SVG metric icons | ISC |
@@ -16,12 +18,24 @@ OpenPanel original source code is licensed under the MIT License.
 | MSTest.TestFramework | .NET unit test framework | MIT |
 | MSTest.TestAdapter | Visual Studio/dotnet test adapter | MIT |
 | Microsoft.NET.Test.Sdk | .NET test SDK | MIT |
+| PresentMon 2.5.1 | On-demand gaming frame-presentation metrics | MIT |
+| Inno Setup 6.7.3 | Build-time creation of the Windows installer; not included in the application payload | [Inno Setup License](https://jrsoftware.org/files/is/license.txt) |
+
+The Logitech HID++ battery protocol implementation and voltage curve were
+adapted from the MIT-licensed
+[logitray](https://github.com/ithilias/logitray) project. OpenPanel performs
+read-only queries and does not install a Logitech background service.
+
+The read-only Logi Options+ named-pipe framing and battery endpoint behavior
+were informed by the MIT-licensed
+[logi-cli](https://github.com/balusch/logi-cli) interoperability project.
+OpenPanel connects only when the user's existing Logi Options+ agent is already
+running and does not start or modify that software.
 
 LibreHardwareMonitorLib brings these transitive packages into the restored dependency graph:
 
 - `BlackSharp.Core` 1.0.7: shared toolkit code, MPL-2.0.
 - `DiskInfoToolkit` 1.1.2: disk-access support, MPL-2.0.
-- `HidSharp` 2.6.4: USB HID access, Apache-2.0.
 - `Mono.Posix.NETStandard` 1.0.0: POSIX compatibility support included by the upstream package.
 - `RAMSPDToolkit-NDD` 1.4.2: RAM SPD access, MPL-2.0.
 - `System.IO.FileSystem.AccessControl` 5.0.0: filesystem access-control APIs, MIT.
@@ -32,6 +46,18 @@ NAudio.Wasapi brings this MIT-licensed package into the restored dependency grap
 
 - `NAudio.Core`
 
-These transitive packages are upstream requirements even though OpenPanel enables only CPU, GPU, memory, and storage hardware categories.
+Microsoft.Diagnostics.Tracing.TraceEvent brings these MIT-licensed packages
+into the restored dependency graph:
+
+- `Microsoft.Diagnostics.NETCore.Client` 0.2.510501.
+- `Microsoft.Extensions.DependencyInjection` 6.0.0 and its abstractions package.
+- `Microsoft.Extensions.Logging` 6.0.0 and its abstractions package.
+- `Microsoft.Extensions.Options` 6.0.0.
+- `Microsoft.Extensions.Primitives` 6.0.0.
+- `System.Reflection.TypeExtensions` 4.7.0.
+
+These transitive packages are upstream requirements of their direct packages.
+OpenPanel keeps both hardware categories and ETW collection narrowly scoped at
+runtime.
 
 Do not add new dependencies without updating this file and documenting why the dependency is needed.
