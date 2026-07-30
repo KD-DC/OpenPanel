@@ -371,6 +371,13 @@ public partial class MainWindow : Window
                 networkQualityService.SetActive(networkExpanded.IsExpanded);
                 networkApplicationTrafficService.SetActive(networkExpanded.IsExpanded);
                 break;
+            case "command:network.permission":
+                if (await NetworkProviderPermissionService.RequestGrantAsync(cancellationToken))
+                {
+                    networkApplicationTrafficService.SetActive(false);
+                    networkApplicationTrafficService.SetActive(true);
+                }
+                break;
             case "command:gaming.active":
                 var gamingActive = DeserializePayload<GamingActivePayload>(command);
                 await gamingPerformanceService.SetActiveAsync(

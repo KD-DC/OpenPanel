@@ -27,6 +27,7 @@ public sealed class NetworkApplicationTrafficService : IDisposable
     private string status = "Open to start app tracking";
     private bool isActive;
     private bool isAvailable;
+    private bool requiresPermission;
     private bool disposed;
 
     public void SetActive(bool active)
@@ -71,6 +72,7 @@ public sealed class NetworkApplicationTrafficService : IDisposable
             return new NetworkApplicationTrafficSummary(
                 isActive,
                 isAvailable,
+                requiresPermission,
                 status,
                 applications);
         }
@@ -114,6 +116,7 @@ public sealed class NetworkApplicationTrafficService : IDisposable
         isActive = true;
         applications = [];
         pending.Clear();
+        requiresPermission = false;
         aggregationStarted = Stopwatch.GetTimestamp();
 
         try
@@ -139,6 +142,7 @@ public sealed class NetworkApplicationTrafficService : IDisposable
                 TaskCreationOptions.LongRunning,
                 TaskScheduler.Default);
             isAvailable = true;
+            requiresPermission = false;
             status = "Collecting app traffic";
             AppLog.Write("network.apps.started", "2 MB ETW session; 2 second aggregation");
         }
@@ -146,20 +150,23 @@ public sealed class NetworkApplicationTrafficService : IDisposable
         {
             CleanupSessionLocked();
             isAvailable = false;
-            status = "Sign out and back in to enable app tracking";
+            requiresPermission = true;
+            status = "Windows permission required";
             AppLog.Write("network.apps.denied", exception.Message);
         }
         catch (Win32Exception exception) when (exception.NativeErrorCode == 5)
         {
             CleanupSessionLocked();
             isAvailable = false;
-            status = "Sign out and back in to enable app tracking";
+            requiresPermission = true;
+            status = "Windows permission required";
             AppLog.Write("network.apps.denied", exception.Message);
         }
         catch (Exception exception)
         {
             CleanupSessionLocked();
             isAvailable = false;
+            requiresPermission = false;
             status = $"App tracking unavailable ({exception.GetType().Name})";
             AppLog.Write(
                 "network.apps.failed",
@@ -171,6 +178,7 @@ public sealed class NetworkApplicationTrafficService : IDisposable
     {
         isActive = false;
         isAvailable = false;
+        requiresPermission = false;
         status = "Open to start app tracking";
         applications = [];
         pending.Clear();

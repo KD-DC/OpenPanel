@@ -90,6 +90,24 @@ function renderApplicationTraffic(
   network: NetworkQualitySummary
 ): string {
   const apps = network.applicationTraffic.applications;
+  if (network.applicationTraffic.requiresPermission) {
+    return `
+      <div class="network-apps network-apps--permission">
+        <div>
+          <i data-lucide="shield-alert"></i>
+          <span>
+            <strong>Application tracking needs Windows permission</strong>
+            <small>OpenPanel remains a standard, non-admin application.</small>
+          </span>
+        </div>
+        <button type="button" data-command="network-permission">
+          <i data-lucide="shield-check"></i>
+          Enable app tracking
+        </button>
+      </div>
+    `;
+  }
+
   const downloads = [...apps]
     .filter(app => app.downloadMbps > 0)
     .sort((left, right) => right.downloadMbps - left.downloadMbps)

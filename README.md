@@ -213,8 +213,13 @@ Add-LocalGroupMember -Group "Performance Log Users" -Member "$env:USERDOMAIN\$en
 ```
 
 Run that command from an administrator PowerShell window. OpenPanel never
-elevates itself; if access is missing, the affected widget reports that Windows
-performance access is required and leaves its collector stopped.
+elevates its dashboard process. The Windows kernel network provider can require
+an additional provider-specific permission. When needed, Network diagnostics
+shows `Enable app tracking`; activating it runs a one-time elevated helper from
+the same signed OpenPanel executable and grants the current account only
+`TRACELOG_GUID_ENABLE` for `Microsoft-Windows-Kernel-Network`. The normal app
+remains non-admin, and the ETW collector stays stopped until permission is
+granted.
 
 OpenPanel appears in the Windows system tray. Double-click the tray icon, or use
 `Open OpenPanel` from its context menu, to restore the dashboard. Use the tray

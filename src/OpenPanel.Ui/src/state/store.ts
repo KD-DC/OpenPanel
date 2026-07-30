@@ -52,6 +52,7 @@ export const initialState: DashboardState = {
     applicationTraffic: {
       isActive: false,
       isAvailable: false,
+      requiresPermission: false,
       status: "Open to start app tracking",
       applications: []
     }

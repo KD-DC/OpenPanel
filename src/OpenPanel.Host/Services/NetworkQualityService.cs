@@ -159,6 +159,7 @@ public sealed class NetworkQualityService
         return new NetworkApplicationTrafficSummary(
             false,
             false,
+            false,
             "Open to start app tracking",
             []);
     }

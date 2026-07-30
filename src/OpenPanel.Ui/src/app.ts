@@ -537,6 +537,9 @@ function bindCommands(root: HTMLElement): void {
         }
         break;
       }
+      case "network-permission":
+        postCommand({ type: "command:network.permission" });
+        break;
       case "gaming-toggle": {
         const button = target.closest<HTMLButtonElement>("[data-command]");
         postCommand({

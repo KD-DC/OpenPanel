@@ -106,6 +106,7 @@ public sealed class BridgeMessageTests
                 new NetworkApplicationTrafficSummary(
                     true,
                     true,
+                    false,
                     "Live app traffic",
                     [new NetworkApplicationSummary(
                         4120,

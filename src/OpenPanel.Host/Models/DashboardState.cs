@@ -82,6 +82,7 @@ public sealed record NetworkQualitySummary(
 public sealed record NetworkApplicationTrafficSummary(
     bool IsActive,
     bool IsAvailable,
+    bool RequiresPermission,
     string Status,
     IReadOnlyList<NetworkApplicationSummary> Applications);
 

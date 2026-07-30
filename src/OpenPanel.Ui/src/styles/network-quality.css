@@ -108,6 +108,61 @@
   gap: 14px;
 }
 
+.network-apps--permission {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border: 1px solid #63551f;
+  padding: 16px 18px;
+  background: #171508;
+}
+
+.network-apps--permission > div,
+.network-apps--permission span {
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.network-apps--permission span {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.network-apps--permission svg {
+  flex: 0 0 auto;
+  inline-size: 20px;
+  block-size: 20px;
+  color: var(--warning);
+}
+
+.network-apps--permission strong {
+  font-size: 15px;
+}
+
+.network-apps--permission small {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.network-apps--permission button {
+  display: inline-flex;
+  min-block-size: 42px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 16px;
+}
+
+.network-apps--permission button svg {
+  inline-size: 16px;
+  block-size: 16px;
+  color: currentColor;
+}
+
 .network-apps > section {
   display: grid;
   min-inline-size: 0;

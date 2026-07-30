@@ -43,7 +43,7 @@ UI-to-host command messages use a `command:*` type and optional payload. Impleme
 
 ## Resource Use
 
-The UI avoids React and graphing libraries. A single non-overlapping one-second loop collects telemetry, audio, and media state concurrently. LibreHardwareMonitor enables only CPU, GPU, and memory categories. Per-process network traffic uses a real-time ETW session only while Network diagnostics is expanded; the session is stopped immediately when that view closes. Missing sensors or platform sessions are represented as unavailable states rather than retried aggressively.
+The UI avoids React and graphing libraries. A single non-overlapping one-second loop collects telemetry, audio, and media state concurrently. LibreHardwareMonitor enables only CPU, GPU, and memory categories. Per-process network traffic uses a real-time ETW session only while Network diagnostics is expanded; the session is stopped immediately when that view closes. If the kernel network provider denies access, the UI offers a deliberate one-time permission action that launches the same executable with `runas`, grants the current user only provider-enable access, exits, and retries from the non-admin dashboard process. Missing sensors or platform sessions are represented as unavailable states rather than retried aggressively.
 
 Extended audio sessions are queried only while the expanded Audio Control Center
 is visible. Weather returns its cached snapshot between 15-minute refreshes and

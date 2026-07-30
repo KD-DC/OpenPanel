@@ -15,6 +15,7 @@ export interface UiToHostMessage<TPayload = unknown> {
     | "command:audio.session.volume"
     | "command:audio.session.mute"
     | "command:network.expanded"
+    | "command:network.permission"
     | "command:gaming.active"
     | "command:media.toggle"
     | "command:media.previous"
@@ -109,6 +110,7 @@ export interface NetworkQualitySummary {
 export interface NetworkApplicationTrafficSummary {
   isActive: boolean;
   isAvailable: boolean;
+  requiresPermission: boolean;
   status: string;
   applications: NetworkApplicationSummary[];
 }
