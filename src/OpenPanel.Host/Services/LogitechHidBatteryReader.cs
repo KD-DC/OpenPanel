@@ -48,7 +48,7 @@ internal sealed class LogitechHidBatteryReader
             {
                 stream.ReadTimeout = ReadTimeoutMilliseconds;
                 stream.WriteTimeout = ReadTimeoutMilliseconds;
-                for (byte slot = 0; slot <= MaximumReceiverSlot; slot++)
+                for (byte slot = 1; slot <= MaximumReceiverSlot; slot++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!TryPing(stream, slot))
@@ -66,7 +66,8 @@ internal sealed class LogitechHidBatteryReader
                         battery?.Percent,
                         battery?.IsCharging,
                         true,
-                        "Logitech HID++"));
+                        "Logitech HID++",
+                        battery?.State));
                 }
             }
         }
@@ -140,30 +141,106 @@ internal sealed class LogitechHidBatteryReader
                 continue;
             }
 
-            var function = featureId == 0x1004 ? (byte)1 : (byte)0;
+            if (featureId == 0x1004)
+            {
+                var capabilities = SendReceive(
+                    stream,
+                    new HidMessage(slot, feature.Value, 0, [0, 0, 0]));
+                var batteryInfo = SendReceive(
+                    stream,
+                    new HidMessage(slot, feature.Value, 1, [0, 0, 0]));
+                if (capabilities is null || batteryInfo is null)
+                {
+                    continue;
+                }
+
+                var supportsPercentage = (capabilities[5] & 0x02) != 0;
+                return new LogitechBatteryReading(
+                    supportsPercentage
+                        ? Math.Clamp((int)batteryInfo[4], 0, 100)
+                        : null,
+                    batteryInfo[6] is 1 or 2,
+                    supportsPercentage
+                        ? null
+                        : UnifiedBatteryState(batteryInfo[5]));
+            }
+
+            if (featureId == 0x1000)
+            {
+                var capabilities = SendReceive(
+                    stream,
+                    new HidMessage(slot, feature.Value, 1, [0, 0, 0]));
+                var batteryInfo = SendReceive(
+                    stream,
+                    new HidMessage(slot, feature.Value, 0, [0, 0, 0]));
+                if (capabilities is null || batteryInfo is null)
+                {
+                    continue;
+                }
+
+                var supportsPercentage =
+                    capabilities[4] >= 10 &&
+                    (capabilities[5] & 0x02) != 0;
+                return new LogitechBatteryReading(
+                    supportsPercentage && batteryInfo[4] > 0
+                        ? Math.Clamp((int)batteryInfo[4], 0, 100)
+                        : null,
+                    batteryInfo[6] is 1 or 2 or 3 or 4,
+                    supportsPercentage
+                        ? null
+                        : LegacyBatteryState(batteryInfo[4]));
+            }
+
             var response = SendReceive(
                 stream,
-                new HidMessage(slot, feature.Value, function, [0, 0, 0]));
+                new HidMessage(slot, feature.Value, 0, [0, 0, 0]));
             if (response is null)
             {
                 continue;
             }
 
-            if (featureId == 0x1001)
-            {
-                var millivolts = (ushort)((response[4] << 8) | response[5]);
-                return new LogitechBatteryReading(
-                    VoltageToPercent(millivolts),
-                    (response[6] & 0x80) != 0 &&
-                    (response[6] & 0x07) != 2);
-            }
-
+            var millivolts = (ushort)((response[4] << 8) | response[5]);
             return new LogitechBatteryReading(
-                Math.Clamp((int)response[4], 0, 100),
-                response[6] is 1 or 2 or 4);
+                VoltageToPercent(millivolts),
+                (response[6] & 0x80) != 0 &&
+                (response[6] & 0x07) != 2,
+                null);
         }
 
         return null;
+    }
+
+    internal static string? UnifiedBatteryState(byte value)
+    {
+        return value switch
+        {
+            1 => "Critical",
+            2 => "Low",
+            4 => "Good",
+            8 => "Full",
+            _ => null
+        };
+    }
+
+    internal static string? LegacyBatteryState(byte value)
+    {
+        if (value == 0)
+        {
+            return null;
+        }
+        if (value <= 10)
+        {
+            return "Critical";
+        }
+        if (value <= 30)
+        {
+            return "Low";
+        }
+        if (value <= 80)
+        {
+            return "Good";
+        }
+        return "Full";
     }
 
     private static byte? TryGetFeatureIndex(
@@ -289,6 +366,7 @@ internal sealed class LogitechHidBatteryReader
     }
 
     private readonly record struct LogitechBatteryReading(
-        int Percent,
-        bool IsCharging);
+        int? Percent,
+        bool IsCharging,
+        string? State);
 }

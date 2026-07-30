@@ -26,6 +26,47 @@ public sealed class PeripheralBatteryServiceTests
         Assert.AreEqual(0, LogitechHidBatteryReader.VoltageToPercent(3400));
     }
 
+    [DataTestMethod]
+    [DataRow(1, "Critical")]
+    [DataRow(2, "Low")]
+    [DataRow(4, "Good")]
+    [DataRow(8, "Full")]
+    public void UnifiedBatteryLevelsAreDescriptive(
+        int value,
+        string expected)
+    {
+        Assert.AreEqual(
+            expected,
+            LogitechHidBatteryReader.UnifiedBatteryState((byte)value));
+    }
+
+    [DataTestMethod]
+    [DataRow(5, "Critical")]
+    [DataRow(24, "Low")]
+    [DataRow(56, "Good")]
+    [DataRow(88, "Full")]
+    public void LegacyCoarseBatteryLevelsAreDescriptive(
+        int value,
+        string expected)
+    {
+        Assert.AreEqual(
+            expected,
+            LogitechHidBatteryReader.LegacyBatteryState((byte)value));
+    }
+
+    [DataTestMethod]
+    [DataRow("Wireless Keyboard ERGO K860", "ERGO K860")]
+    [DataRow("Wireless Mouse MX Master 3", "MX Master 3")]
+    [DataRow("Logitech MX Master 3", "MX Master 3")]
+    public void GenericLogitechIdentityPrefixesAreRemoved(
+        string name,
+        string expected)
+    {
+        Assert.AreEqual(
+            expected,
+            PeripheralBatteryService.RemoveIdentityPrefix(name));
+    }
+
     [TestMethod]
     public void LogitechOptionsAgentParsesBatteryCapableDevices()
     {

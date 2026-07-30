@@ -116,11 +116,30 @@ public sealed class PeripheralBatteryService : IDisposable
 
     private static string DeviceKey(PeripheralBatteryDeviceSummary device)
     {
-        var name = new string(device.Name
+        var normalizedName = RemoveIdentityPrefix(device.Name);
+        var name = new string(normalizedName
             .Where(char.IsLetterOrDigit)
             .Select(char.ToUpperInvariant)
             .ToArray());
         return $"{device.Category}:{name}";
+    }
+
+    internal static string RemoveIdentityPrefix(string name)
+    {
+        var prefixes = new[]
+        {
+            "Wireless Keyboard ",
+            "Wireless Mouse ",
+            "Logitech "
+        };
+        foreach (var prefix in prefixes)
+        {
+            if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return name[prefix.Length..].Trim();
+            }
+        }
+        return name.Trim();
     }
 
     private static async Task<IReadOnlyList<PeripheralBatteryDeviceSummary>>

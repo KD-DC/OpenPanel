@@ -151,6 +151,8 @@ Low background overhead is a primary project requirement.
   minutes. When Logi Options+ is already installed, OpenPanel reuses its local
   agent through one read-only named-pipe subscription instead of starting
   another hardware process.
+- Logitech HID++ devices that expose only four-level battery data are shown as
+  `Full`, `Good`, `Low`, or `Critical` instead of a fabricated percentage.
 - Network quality sends one small ICMP probe per second only while its expanded
   view is open.
 - PresentMon is not started until the Gaming widget's Start button is pressed.
