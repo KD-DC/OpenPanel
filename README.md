@@ -49,6 +49,7 @@ SmartScreen may show an unrecognized-app warning. Each release includes a
 - Automatic page creation at the right edge and removal of empty pages.
 - Persistent widget order and compact/expanded Media sizing.
 - Tray-only operation with no taskbar button.
+- Tray option to start OpenPanel automatically when the current user signs in.
 - OLED-first dark appearance plus the earlier `Current` appearance for
   comparison.
 

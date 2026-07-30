@@ -31,10 +31,13 @@ public partial class MainWindow : Window
     private readonly AudioDeviceService audioDeviceService = new();
     private readonly MediaSessionService mediaSessionService = new();
     private readonly WeatherService weatherService;
+    private readonly IStartupRegistrationService startupRegistrationService =
+        new StartupRegistrationService();
     private readonly CancellationTokenSource telemetryCancellation = new();
     private readonly Forms.ContextMenuStrip trayMenu;
     private readonly Forms.ToolStripMenuItem currentAppearanceMenuItem;
     private readonly Forms.ToolStripMenuItem mediaOledAppearanceMenuItem;
+    private readonly Forms.ToolStripMenuItem startWithWindowsMenuItem;
     private readonly Dictionary<string, Forms.ToolStripMenuItem> widgetMenuItems = [];
     private readonly System.Drawing.Icon trayIconImage;
     private readonly Forms.NotifyIcon trayIcon;
@@ -77,9 +80,21 @@ public partial class MainWindow : Window
         }
         trayMenu.Items.Add(widgetsMenu);
         trayMenu.Items.Add(new Forms.ToolStripSeparator());
+
+        startWithWindowsMenuItem = new Forms.ToolStripMenuItem(
+            "Start OpenPanel when I sign in",
+            null,
+            OnStartWithWindows)
+        {
+            CheckOnClick = false
+        };
+        trayMenu.Items.Add(startWithWindowsMenuItem);
+        trayMenu.Items.Add(new Forms.ToolStripSeparator());
         trayMenu.Items.Add("Exit OpenPanel", null, OnTrayExit);
+        trayMenu.Opening += OnTrayMenuOpening;
         UpdateAppearanceMenu();
         UpdateWidgetMenu();
+        UpdateStartupMenu();
 
         trayIconImage = CreateTrayIcon();
         trayIcon = new Forms.NotifyIcon
@@ -139,6 +154,7 @@ public partial class MainWindow : Window
         trayIcon.DoubleClick -= OnTrayOpen;
         trayIcon.Dispose();
         trayIconImage.Dispose();
+        trayMenu.Opening -= OnTrayMenuOpening;
         trayMenu.Dispose();
 
         if (DashboardWebView.CoreWebView2 is { } coreWebView)
@@ -171,6 +187,31 @@ public partial class MainWindow : Window
     private void OnTrayExit(object? sender, EventArgs e)
     {
         Dispatcher.BeginInvoke(() => System.Windows.Application.Current.Shutdown());
+    }
+
+    private void OnTrayMenuOpening(object? sender, EventArgs e)
+    {
+        UpdateAppearanceMenu();
+        UpdateWidgetMenu();
+        UpdateStartupMenu();
+    }
+
+    private void OnStartWithWindows(object? sender, EventArgs e)
+    {
+        try
+        {
+            var enabled = !startupRegistrationService.IsEnabled;
+            startupRegistrationService.SetEnabled(enabled);
+            UpdateStartupMenu();
+            AppLog.Write("startup.changed", $"enabled={enabled}");
+        }
+        catch (Exception ex)
+        {
+            UpdateStartupMenu();
+            AppLog.Write(
+                "startup.failed",
+                $"{ex.GetType().Name}: {ex.Message}");
+        }
     }
 
     private async void OnCurrentAppearance(object? sender, EventArgs e)
@@ -242,6 +283,22 @@ public partial class MainWindow : Window
         foreach (var (widgetId, menuItem) in widgetMenuItems)
         {
             menuItem.Checked = !settingsService.DisabledWidgets.Contains(widgetId);
+        }
+    }
+
+    private void UpdateStartupMenu()
+    {
+        try
+        {
+            startWithWindowsMenuItem.Checked =
+                startupRegistrationService.IsEnabled;
+        }
+        catch (Exception ex)
+        {
+            startWithWindowsMenuItem.Checked = false;
+            AppLog.Write(
+                "startup.read.failed",
+                $"{ex.GetType().Name}: {ex.Message}");
         }
     }
 
