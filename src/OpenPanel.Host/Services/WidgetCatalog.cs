@@ -15,6 +15,8 @@ public static class WidgetCatalog
         new("gpu-thermals", "GPU thermals"),
         new("storage", "Storage"),
         new("environment", "Weather"),
+        new("calendar", "Google Tasks / Calendar"),
+        new("stocks", "Stock watchlist"),
         new("peripherals", "Peripheral batteries"),
         new("gaming", "Gaming performance")
     ];

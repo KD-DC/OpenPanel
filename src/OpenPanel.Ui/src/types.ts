@@ -39,6 +39,8 @@ export interface DashboardState {
   media: MediaSummary;
   audio: AudioSummary;
   weather: WeatherSummary;
+  calendar: CalendarSummary;
+  stocks: StockMarketSummary;
   appearance: AppearanceSummary;
   widgets: WidgetConfigurationSummary;
   display: DisplaySummary;
@@ -267,6 +269,50 @@ export interface AirQualitySummary {
   pm25: number | null;
   pm10: number | null;
   ozone: number | null;
+}
+
+export interface CalendarSummary {
+  isConnected: boolean;
+  isAvailable: boolean;
+  isStale: boolean;
+  status: string;
+  events: CalendarEventSummary[];
+  updatedAt: string | null;
+}
+
+export interface CalendarEventSummary {
+  id: string;
+  title: string;
+  location: string;
+  start: string;
+  end: string;
+  isAllDay: boolean;
+  isTask: boolean;
+  link: string | null;
+}
+
+export interface StockMarketSummary {
+  isConfigured: boolean;
+  isAvailable: boolean;
+  isStale: boolean;
+  status: string;
+  isMarketOpen: boolean;
+  quotes: StockQuoteSummary[];
+  updatedAt: string | null;
+}
+
+export interface StockQuoteSummary {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number | null;
+  changePercent: number | null;
+  open: number | null;
+  high: number | null;
+  low: number | null;
+  previousClose: number | null;
+  isMarketOpen: boolean;
+  history: number[];
 }
 
 export interface AppearanceSummary {

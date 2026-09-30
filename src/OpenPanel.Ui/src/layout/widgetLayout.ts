@@ -10,6 +10,8 @@ export const widgetDefinitions = {
   "gpu-thermals": { label: "GPU thermals", spans: { compact: 2, expanded: 2 } },
   storage: { label: "Storage", spans: { compact: 4, expanded: 4 } },
   environment: { label: "Weather", spans: { compact: 2, expanded: 2 } },
+  calendar: { label: "Google Tasks / Calendar", spans: { compact: 2, expanded: 2 } },
+  stocks: { label: "Stock watchlist", spans: { compact: 2, expanded: 2 } },
   peripherals: { label: "Peripheral batteries", spans: { compact: 2, expanded: 2 } },
   gaming: { label: "Gaming performance", spans: { compact: 2, expanded: 2 } }
 } as const;
@@ -23,14 +25,14 @@ export interface WidgetLayoutState {
   sizes: WidgetSizes;
 }
 
-const storageKey = "openpanel.widget-layout.v3";
-const previousStorageKey = "openpanel.widget-layout.v2";
-const legacyStorageKey = "openpanel.widget-layout.v1";
+const storageKey = "openpanel.widget-layout.v4";
+const previousStorageKey = "openpanel.widget-layout.v3";
+const legacyStorageKey = "openpanel.widget-layout.v2";
 const widgetIds = Object.keys(widgetDefinitions) as WidgetId[];
 const defaultLayout: WidgetLayout = [
   ["system", "media", "audio"],
   ["memory", "cpu-power", "gpu-power", "gpu-thermals", "storage"],
-  ["environment", "peripherals", "gaming"]
+  ["environment", "calendar", "stocks", "peripherals", "gaming"]
 ];
 
 export function loadWidgetLayoutState(): WidgetLayoutState {

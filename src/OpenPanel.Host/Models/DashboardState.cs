@@ -12,6 +12,8 @@ public sealed record DashboardState(
     MediaSummary Media,
     AudioSummary Audio,
     WeatherSummary Weather,
+    CalendarSummary Calendar,
+    StockMarketSummary Stocks,
     AppearanceSummary Appearance,
     WidgetConfigurationSummary Widgets,
     DisplaySummary Display);
@@ -223,6 +225,46 @@ public sealed record AirQualitySummary(
     double? Pm25,
     double? Pm10,
     double? Ozone);
+
+public sealed record CalendarSummary(
+    bool IsConnected,
+    bool IsAvailable,
+    bool IsStale,
+    string Status,
+    IReadOnlyList<CalendarEventSummary> Events,
+    DateTimeOffset? UpdatedAt);
+
+public sealed record CalendarEventSummary(
+    string Id,
+    string Title,
+    string Location,
+    DateTimeOffset Start,
+    DateTimeOffset End,
+    bool IsAllDay,
+    bool IsTask,
+    string? Link);
+
+public sealed record StockMarketSummary(
+    bool IsConfigured,
+    bool IsAvailable,
+    bool IsStale,
+    string Status,
+    bool IsMarketOpen,
+    IReadOnlyList<StockQuoteSummary> Quotes,
+    DateTimeOffset? UpdatedAt);
+
+public sealed record StockQuoteSummary(
+    string Symbol,
+    string Name,
+    double Price,
+    double? Change,
+    double? ChangePercent,
+    double? Open,
+    double? High,
+    double? Low,
+    double? PreviousClose,
+    bool IsMarketOpen,
+    IReadOnlyList<double> History);
 
 public sealed record AppearanceSummary(string Theme);
 

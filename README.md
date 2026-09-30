@@ -69,8 +69,10 @@ SmartScreen may show an unrecognized-app warning. Each release includes a
 | GPU Thermals | Hot-spot and memory-junction temperatures when exposed |
 | Storage | Capacity, activity, temperature, and read/write rates for detected fixed drives |
 | Weather | Current conditions, daily high/low, feels-like temperature, humidity, wind, and U.S. AQI |
+| Google Tasks / Calendar | Today's all-day and timed events plus incomplete tasks due today, with a full-day expanded agenda using read-only Google access |
+| Stock Watchlist | User-selected U.S. stock quotes, daily movement, locally accumulated sparklines, and expanded open/high/low/previous-close details |
 
-Media, Weather, Hardware application usage, and the Hardware network section can expand for more detail. Compact Media occupies
+Media, Weather, Calendar, Stocks, Hardware application usage, and the Hardware network section can expand for more detail. Compact Media occupies
 one standard widget width; expanded Media returns to its larger artwork-focused
 layout while surrounding widgets automatically reflow.
 
@@ -115,6 +117,26 @@ The host fetches forecast and air-quality data from Open-Meteo without an API
 key. Successful responses are cached for 15 minutes; failed refreshes retain the
 last valid result and retry after five minutes.
 
+### Calendar and market data
+
+Google Tasks / Calendar uses the installed-application OAuth flow and requests
+only read-only event, calendar-list, and task access. Choose
+**Integrations > Connect Google Tasks / Calendar** from
+the tray icon, select a Google Desktop OAuth credentials JSON file, complete
+browser sign-in, and choose the calendars to display. For a
+personal app, Google permits use without verification; an external app left in
+Testing expires its authorization after seven days, so use the In production
+publishing status and proceed through Google's unverified-app warning.
+
+The stock widget uses a personal Twelve Data API key configured under
+**Integrations > Configure stock watchlist**. OpenPanel makes one batched quote
+request every five minutes while the market is open and every 30 minutes while
+it is closed. Up to eight symbols are supported. Five-minute samples are cached
+locally for the current trading day so charts survive application restarts
+without additional API requests. Both integration files are
+encrypted for the current Windows user with DPAPI under
+`%LOCALAPPDATA%\OpenPanel\Integrations`.
+
 ## Architecture
 
 OpenPanel keeps Windows integration in a native host and presentation in a
@@ -130,6 +152,8 @@ flowchart LR
     Media["Windows GSMTC"] --> Host
     Audio["Core Audio / NAudio"] --> Host
     Weather["Open-Meteo"] --> Host
+    Calendar["Google Calendar and Tasks APIs"] --> Host
+    Stocks["Twelve Data"] --> Host
     Gaming["PresentMon, on demand"] --> Host
     Batteries["Bluetooth GATT / Logitech HID++"] --> Host
 ```
@@ -139,7 +163,8 @@ flowchart LR
 The .NET 10 WPF host owns:
 
 - Display discovery, window placement, system tray behavior, and WebView2.
-- Hardware, on-demand process usage, memory, network, storage, media, audio, and weather services.
+- Hardware, on-demand process usage, memory, network, storage, media, audio,
+  weather, calendar, and market-data services.
 - Normalization of Windows-specific data into one `DashboardState`.
 - Validation and execution of typed commands from the UI.
 - Settings and diagnostic logs under `%LOCALAPPDATA%\OpenPanel`.
@@ -174,6 +199,9 @@ Low background overhead is a primary project requirement.
   compact audio state concurrently.
 - Storage sensors are sampled every five seconds.
 - Weather is cached for 15 minutes.
+- Google Tasks / Calendar is cached for five minutes and uses only read-only scopes.
+- Stock quotes use one batched request every five minutes during market hours
+  and every 30 minutes while markets are closed.
 - Bluetooth and direct HID++ battery probes refresh at most once every two
   minutes. When Logi Options+ is already installed, OpenPanel reuses its local
   agent through one read-only named-pipe subscription instead of starting
@@ -292,7 +320,7 @@ Host settings are stored at:
 %LOCALAPPDATA%\OpenPanel\settings.json
 ```
 
-The current settings include appearance and weather location. Until a settings
+The main settings include appearance and weather location. Until a settings
 UI is added, close OpenPanel before editing the file manually:
 
 ```json
@@ -305,6 +333,10 @@ UI is added, close OpenPanel before editing the file manually:
   }
 }
 ```
+
+Calendar OAuth credentials and stock settings are configured from the tray
+icon's **Integrations** submenu and stored separately using Windows DPAPI. See
+[Calendar and stock integrations](docs/integrations.md) for setup.
 
 Diagnostics are written sparingly to:
 
@@ -375,7 +407,8 @@ for persisted visibility settings.
 - The display chooser is automatic: it prefers 1920 x 550, then uses the
   primary display.
 - Weather location currently requires editing `settings.json`.
-- There is not yet an installer, Start menu entry, or automatic-start option.
+- Stock quotes and market-open status depend on Twelve Data coverage and may be
+  delayed under the selected account plan.
 
 ## Documentation
 
@@ -384,6 +417,7 @@ for persisted visibility settings.
 - [Media widget](docs/media-widget.md)
 - [Audio control center](docs/audio-output.md)
 - [Weather and air quality](docs/weather.md)
+- [Calendar and stock integrations](docs/integrations.md)
 - [Appearance](docs/appearance.md)
 - [Testing checklist](docs/testing.md)
 

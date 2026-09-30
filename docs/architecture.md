@@ -14,7 +14,7 @@ The host is a .NET 10 WPF app. It is responsible for:
 - Persisting disabled widget IDs and generating the native tray configuration
   from the central `WidgetCatalog`.
 
-The host samples hardware sensors through LibreHardwareMonitor. RAM and network rates use Windows and .NET APIs. It reads global media sessions through `GlobalSystemMediaTransportControlsSessionManager` and global output state through Core Audio/NAudio. Weather and air-quality responses are fetched through `HttpClient`, normalized in the host, and cached for 15 minutes. The normalized snapshot is sent to the UI once per second.
+The host samples hardware sensors through LibreHardwareMonitor. RAM and network rates use Windows and .NET APIs. It reads global media sessions through `GlobalSystemMediaTransportControlsSessionManager` and global output state through Core Audio/NAudio. Weather, Google Calendar, Google Tasks, and Twelve Data responses are fetched through `HttpClient` and normalized before entering dashboard state. Google and stock credentials are protected with Windows DPAPI and never enter the WebView. The normalized snapshot is sent to the UI once per second.
 
 Default audio output switching is isolated under `Interop/AudioPolicyConfig` because Windows exposes endpoint enumeration and volume publicly but not the default-output setter. Media artwork is cached by track identity and sent only when it changes or after a 30-second refresh.
 
@@ -50,5 +50,12 @@ The UI avoids React and graphing libraries. A single non-overlapping one-second 
 Extended audio sessions are queried only while the expanded Audio Control Center
 is visible. Weather returns its cached snapshot between 15-minute refreshes and
 backs off for five minutes after a failure.
+
+Google Tasks / Calendar returns its cached snapshot between five-minute refreshes. The
+stock service makes one batched request for the configured watchlist every five
+minutes while any returned quote reports an open market, then backs off to 30
+minutes while markets are closed. Disabling either widget suppresses its network
+work. Sparkline samples are accumulated locally from quote responses, avoiding a
+second historical-data polling stream.
 
 Future services should keep coarse update intervals, avoid repeated large payloads, and isolate Windows interop behind small interfaces.

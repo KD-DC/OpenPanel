@@ -30,6 +30,8 @@ public partial class MainWindow : Window
     private readonly GamingPerformanceService gamingPerformanceService = new();
     private readonly AudioDeviceService audioDeviceService = new();
     private readonly MediaSessionService mediaSessionService = new();
+    private readonly GoogleCalendarService googleCalendarService = new();
+    private readonly StockMarketService stockMarketService = new();
     private readonly WeatherService weatherService;
     private readonly IStartupRegistrationService startupRegistrationService =
         new StartupRegistrationService();
@@ -39,6 +41,9 @@ public partial class MainWindow : Window
     private readonly Forms.ToolStripMenuItem currentAppearanceMenuItem;
     private readonly Forms.ToolStripMenuItem mediaOledAppearanceMenuItem;
     private readonly Forms.ToolStripMenuItem startWithWindowsMenuItem;
+    private readonly Forms.ToolStripMenuItem googleCalendarMenuItem;
+    private readonly Forms.ToolStripMenuItem selectCalendarsMenuItem;
+    private readonly Forms.ToolStripMenuItem stockConfigurationMenuItem;
     private readonly Dictionary<string, Forms.ToolStripMenuItem> widgetMenuItems = [];
     private readonly System.Drawing.Icon trayIconImage;
     private readonly Forms.NotifyIcon trayIcon;
@@ -80,6 +85,24 @@ public partial class MainWindow : Window
             widgetsMenu.DropDownItems.Add(item);
         }
         trayMenu.Items.Add(widgetsMenu);
+
+        var integrationsMenu = new Forms.ToolStripMenuItem("Integrations");
+        googleCalendarMenuItem = new Forms.ToolStripMenuItem(
+            "Connect Google Tasks / Calendar...",
+            null,
+            OnGoogleCalendar);
+        selectCalendarsMenuItem = new Forms.ToolStripMenuItem(
+            "Select calendars...",
+            null,
+            OnSelectCalendars);
+        stockConfigurationMenuItem = new Forms.ToolStripMenuItem(
+            "Configure stock watchlist...",
+            null,
+            OnStockConfiguration);
+        integrationsMenu.DropDownItems.Add(googleCalendarMenuItem);
+        integrationsMenu.DropDownItems.Add(selectCalendarsMenuItem);
+        integrationsMenu.DropDownItems.Add(stockConfigurationMenuItem);
+        trayMenu.Items.Add(integrationsMenu);
         trayMenu.Items.Add(new Forms.ToolStripSeparator());
 
         startWithWindowsMenuItem = new Forms.ToolStripMenuItem(
@@ -95,6 +118,7 @@ public partial class MainWindow : Window
         trayMenu.Opening += OnTrayMenuOpening;
         UpdateAppearanceMenu();
         UpdateWidgetMenu();
+        UpdateIntegrationMenu();
         UpdateStartupMenu();
 
         trayIconImage = CreateTrayIcon();
@@ -169,6 +193,8 @@ public partial class MainWindow : Window
         }
 
         gamingPerformanceService.Dispose();
+        googleCalendarService.Dispose();
+        stockMarketService.Dispose();
         networkApplicationTrafficService.Dispose();
         peripheralBatteryService.Dispose();
         telemetryService.Dispose();
@@ -198,7 +224,153 @@ public partial class MainWindow : Window
     {
         UpdateAppearanceMenu();
         UpdateWidgetMenu();
+        UpdateIntegrationMenu();
         UpdateStartupMenu();
+    }
+
+    private async void OnGoogleCalendar(object? sender, EventArgs e)
+    {
+        if (googleCalendarService.IsConnected)
+        {
+            if (googleCalendarService.HasTasksAccess)
+            {
+                var result = Forms.MessageBox.Show(
+                    "Disconnect Google Tasks / Calendar from OpenPanel?",
+                    "OpenPanel",
+                    Forms.MessageBoxButtons.YesNo,
+                    Forms.MessageBoxIcon.Question);
+                if (result == Forms.DialogResult.Yes)
+                {
+                    googleCalendarService.Disconnect();
+                    UpdateIntegrationMenu();
+                }
+                return;
+            }
+
+            var reconnect = Forms.MessageBox.Show(
+                "Reconnect your existing Google Calendar integration to add read-only Google Tasks access?",
+                "Add Google Tasks",
+                Forms.MessageBoxButtons.YesNo,
+                Forms.MessageBoxIcon.Information);
+            if (reconnect != Forms.DialogResult.Yes)
+            {
+                return;
+            }
+        }
+
+        using var setupDialog = new GoogleCalendarSetupDialog();
+        if (setupDialog.ShowDialog() != Forms.DialogResult.OK)
+        {
+            return;
+        }
+
+        using var dialog = new Forms.OpenFileDialog
+        {
+            Title = "Select Google Desktop OAuth credentials",
+            Filter = "Google OAuth JSON (*.json)|*.json|All files (*.*)|*.*",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+        if (dialog.ShowDialog() != Forms.DialogResult.OK)
+        {
+            return;
+        }
+
+        try
+        {
+            googleCalendarMenuItem.Enabled = false;
+            var json = await File.ReadAllTextAsync(
+                dialog.FileName,
+                telemetryCancellation.Token);
+            await googleCalendarService.ConnectAsync(
+                json,
+                telemetryCancellation.Token);
+            await ShowCalendarSelectionAsync();
+            Forms.MessageBox.Show(
+                "Google Tasks / Calendar is connected.",
+                "OpenPanel",
+                Forms.MessageBoxButtons.OK,
+                Forms.MessageBoxIcon.Information);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            AppLog.Write("calendar.connect.failed", ex.Message);
+            Forms.MessageBox.Show(
+                ex.Message,
+                "Google Tasks / Calendar connection failed",
+                Forms.MessageBoxButtons.OK,
+                Forms.MessageBoxIcon.Error);
+        }
+        finally
+        {
+            googleCalendarMenuItem.Enabled = true;
+            UpdateIntegrationMenu();
+        }
+    }
+
+    private async void OnSelectCalendars(object? sender, EventArgs e)
+    {
+        try
+        {
+            selectCalendarsMenuItem.Enabled = false;
+            await ShowCalendarSelectionAsync();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            AppLog.Write("calendar.selection.failed", ex.Message);
+            Forms.MessageBox.Show(
+                ex.Message,
+                "Calendar selection failed",
+                Forms.MessageBoxButtons.OK,
+                Forms.MessageBoxIcon.Error);
+        }
+        finally
+        {
+            UpdateIntegrationMenu();
+        }
+    }
+
+    private async Task ShowCalendarSelectionAsync()
+    {
+        var calendars = await googleCalendarService.GetCalendarsAsync(
+            telemetryCancellation.Token);
+        using var dialog = new CalendarSelectionDialog(calendars);
+        if (dialog.ShowDialog() != Forms.DialogResult.OK)
+        {
+            return;
+        }
+        await googleCalendarService.SetSelectedCalendarsAsync(
+            dialog.SelectedCalendarIds,
+            telemetryCancellation.Token);
+    }
+
+    private async void OnStockConfiguration(object? sender, EventArgs e)
+    {
+        using var dialog = new StockConfigurationDialog(
+            stockMarketService.ApiKey,
+            stockMarketService.Symbols);
+        if (dialog.ShowDialog() != Forms.DialogResult.OK)
+        {
+            return;
+        }
+
+        try
+        {
+            await stockMarketService.ConfigureAsync(
+                dialog.ApiKey,
+                dialog.Symbols,
+                telemetryCancellation.Token);
+            UpdateIntegrationMenu();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            AppLog.Write("stocks.configure.failed", ex.Message);
+            Forms.MessageBox.Show(
+                ex.Message,
+                "Stock configuration failed",
+                Forms.MessageBoxButtons.OK,
+                Forms.MessageBoxIcon.Error);
+        }
     }
 
     private void OnStartWithWindows(object? sender, EventArgs e)
@@ -305,6 +477,19 @@ public partial class MainWindow : Window
                 "startup.read.failed",
                 $"{ex.GetType().Name}: {ex.Message}");
         }
+    }
+
+    private void UpdateIntegrationMenu()
+    {
+        googleCalendarMenuItem.Text = googleCalendarService.IsConnected
+            ? googleCalendarService.HasTasksAccess
+                ? "Disconnect Google Tasks / Calendar"
+                : "Reconnect to add Google Tasks..."
+            : "Connect Google Tasks / Calendar...";
+        selectCalendarsMenuItem.Enabled = googleCalendarService.IsConnected;
+        stockConfigurationMenuItem.Text = stockMarketService.IsConfigured
+            ? "Edit stock watchlist..."
+            : "Configure stock watchlist...";
     }
 
     private static System.Drawing.Icon CreateTrayIcon()
@@ -590,6 +775,12 @@ public partial class MainWindow : Window
                     var mediaTask = mediaSessionService.GetCurrentSessionAsync(cancellationToken);
                     var audioTask = audioDeviceService.GetOutputsAsync(cancellationToken);
                     var weatherTask = weatherService.GetSnapshotAsync(cancellationToken);
+                    var calendarTask = googleCalendarService.GetSnapshotAsync(
+                        !settingsService.DisabledWidgets.Contains("calendar"),
+                        cancellationToken);
+                    var stocksTask = stockMarketService.GetSnapshotAsync(
+                        !settingsService.DisabledWidgets.Contains("stocks"),
+                        cancellationToken);
 
                     await Task.WhenAll(
                         telemetryTask,
@@ -598,7 +789,9 @@ public partial class MainWindow : Window
                         peripheralTask,
                         mediaTask,
                         audioTask,
-                        weatherTask);
+                        weatherTask,
+                        calendarTask,
+                        stocksTask);
                     PostStateUpdate(
                         telemetryTask.Result,
                         networkTask.Result with
@@ -610,7 +803,9 @@ public partial class MainWindow : Window
                         gamingPerformanceService.GetSnapshot(),
                         mediaTask.Result,
                         audioTask.Result,
-                        weatherTask.Result);
+                        weatherTask.Result,
+                        calendarTask.Result,
+                        stocksTask.Result);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
@@ -633,7 +828,9 @@ public partial class MainWindow : Window
         GamingPerformanceSummary gaming,
         MediaSummary media,
         AudioSummary audio,
-        WeatherSummary weather)
+        WeatherSummary weather,
+        CalendarSummary calendar,
+        StockMarketSummary stocks)
     {
         var coreWebView = DashboardWebView.CoreWebView2;
         if (coreWebView is null || selectedDisplay is null)
@@ -650,6 +847,8 @@ public partial class MainWindow : Window
             media,
             audio,
             weather,
+            calendar,
+            stocks,
             settingsService.Appearance,
             WidgetCatalog.CreateSummary(settingsService.DisabledWidgets),
             selectedDisplay);
