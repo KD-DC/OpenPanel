@@ -142,6 +142,40 @@ public sealed class BridgeMessageTests
             media,
             audio,
             weather,
+            new CalendarSummary(
+                true,
+                true,
+                false,
+                "Updated",
+                [new CalendarEventSummary(
+                    "event-1",
+                    "Product review",
+                    "Google Meet",
+                    DateTimeOffset.Now.AddMinutes(30),
+                    DateTimeOffset.Now.AddMinutes(75),
+                    false,
+                    false,
+                    "https://calendar.google.com")],
+                DateTimeOffset.Now),
+            new StockMarketSummary(
+                true,
+                true,
+                false,
+                "Market open",
+                true,
+                [new StockQuoteSummary(
+                    "NVDA",
+                    "NVIDIA Corporation",
+                    187.42,
+                    4.01,
+                    2.18,
+                    184,
+                    188,
+                    182,
+                    183.41,
+                    true,
+                    [183.41, 187.42])],
+                DateTimeOffset.Now),
             SettingsService.MediaOledAppearance,
             WidgetCatalog.CreateSummary(new HashSet<string> { "gaming" }),
             display);
@@ -175,6 +209,8 @@ public sealed class BridgeMessageTests
         StringAssert.Contains(json, "\"location\":\"Washington, DC\"");
         StringAssert.Contains(json, "\"currentTemperatureFahrenheit\":81");
         StringAssert.Contains(json, "\"usAqi\":42");
+        StringAssert.Contains(json, "\"title\":\"Product review\"");
+        StringAssert.Contains(json, "\"symbol\":\"NVDA\"");
         StringAssert.Contains(json, "\"latencyMs\":12.4");
         StringAssert.Contains(json, "\"cpuPercent\":8.5");
         StringAssert.Contains(json, "\"memoryMegabytes\":1024");

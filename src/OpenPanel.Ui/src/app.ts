@@ -3,7 +3,12 @@ import {
   AudioLines,
   BatteryCharging,
   BatteryMedium,
+  BadgeDollarSign,
   Bluetooth,
+  CalendarClock,
+  CalendarDays,
+  ChartNoAxesCombined,
+  ChevronRight,
   Cloud,
   CloudFog,
   CloudLightning,
@@ -12,6 +17,7 @@ import {
   CloudSun,
   Check,
   CircleAlert,
+  Clock3,
   Cpu,
   createIcons,
   Database,
@@ -26,6 +32,7 @@ import {
   Info,
   Keyboard,
   Leaf,
+  ListChecks,
   MapPin,
   Maximize2,
   MemoryStick,
@@ -60,6 +67,8 @@ import { renderMediaWidget } from "./widgets/media/mediaWidget";
 import { renderCombinedSystemWidget } from "./widgets/system/combinedSystemWidget";
 import { renderPeripheralBatteryWidget } from "./widgets/peripherals/peripheralBatteryWidget";
 import { renderGamingPerformanceWidget } from "./widgets/gaming/gamingPerformanceWidget";
+import { renderCalendarWidget } from "./widgets/calendar/calendarWidget";
+import { renderStockWidget } from "./widgets/stocks/stockWidget";
 import {
   renderOledAudioWidget,
   renderOledMediaWidget
@@ -277,6 +286,8 @@ function renderWidgets(root: HTMLElement, state: DashboardState): void {
   updateWidget(root, "gpu-thermals", renderGpuThermalsWidget(state.advanced));
   updateWidget(root, "storage", renderStorageWidget(state.storage));
   updateWidget(root, "environment", renderEnvironmentWidget(state.weather));
+  updateWidget(root, "calendar", renderCalendarWidget(state.calendar));
+  updateWidget(root, "stocks", renderStockWidget(state.stocks));
   const peripheralSlot = root.querySelector<HTMLElement>(
     "[data-widget=\"peripherals\"]"
   );
@@ -305,9 +316,15 @@ function renderIcons(): void {
       AudioLines,
       BatteryCharging,
       BatteryMedium,
+      BadgeDollarSign,
       Bluetooth,
+      CalendarClock,
+      CalendarDays,
+      ChartNoAxesCombined,
+      ChevronRight,
       Check,
       CircleAlert,
+      Clock3,
       Cloud,
       CloudFog,
       CloudLightning,
@@ -327,6 +344,7 @@ function renderIcons(): void {
       Info,
       Keyboard,
       Leaf,
+      ListChecks,
       MapPin,
       Maximize2,
       MemoryStick,
@@ -392,6 +410,8 @@ function updateWidget(root: HTMLElement, name: string, markup: string): void {
     syncSystemExpandedState(slot);
   } else if (name === "environment") {
     syncEnvironmentExpandedState(slot);
+  } else if (name === "calendar" || name === "stocks") {
+    syncIntegrationExpandedState(slot, name);
   }
 
   const replacement =
@@ -600,6 +620,22 @@ function bindCommands(root: HTMLElement): void {
           slot.dataset.expanded =
             slot.dataset.expanded === "true" ? "false" : "true";
           syncEnvironmentExpandedState(slot);
+        }
+        break;
+      }
+      case "calendar-expand": {
+        const slot = target.closest<HTMLElement>("[data-widget='calendar']");
+        if (slot) {
+          slot.dataset.expanded = slot.dataset.expanded === "true" ? "false" : "true";
+          syncIntegrationExpandedState(slot, "calendar");
+        }
+        break;
+      }
+      case "stocks-expand": {
+        const slot = target.closest<HTMLElement>("[data-widget='stocks']");
+        if (slot) {
+          slot.dataset.expanded = slot.dataset.expanded === "true" ? "false" : "true";
+          syncIntegrationExpandedState(slot, "stocks");
         }
         break;
       }
@@ -1043,6 +1079,20 @@ function syncEnvironmentExpandedState(slot: HTMLElement): void {
     "title",
     isExpanded ? "Collapse weather" : "Expand weather"
   );
+}
+
+function syncIntegrationExpandedState(
+  slot: HTMLElement,
+  widget: "calendar" | "stocks"
+): void {
+  const isExpanded = slot.dataset.expanded === "true";
+  const label = widget === "calendar" ? "calendar" : "watchlist";
+  const button = slot.querySelector<HTMLButtonElement>(
+    `[data-command='${widget}-expand']`
+  );
+  button?.setAttribute("aria-expanded", String(isExpanded));
+  button?.setAttribute("aria-label", isExpanded ? `Collapse ${label}` : `Expand ${label}`);
+  button?.setAttribute("title", isExpanded ? `Collapse ${label}` : `Expand ${label}`);
 }
 
 function toggleSystemExpandedView(

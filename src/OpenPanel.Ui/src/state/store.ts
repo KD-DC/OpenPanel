@@ -141,6 +141,23 @@ export const initialState: DashboardState = {
     },
     updatedAt: null
   },
+  calendar: {
+    isConnected: false,
+    isAvailable: false,
+    isStale: false,
+    status: "Connect Google Tasks / Calendar from the system tray",
+    events: [],
+    updatedAt: null
+  },
+  stocks: {
+    isConfigured: false,
+    isAvailable: false,
+    isStale: false,
+    status: "Configure stocks from the system tray",
+    isMarketOpen: false,
+    quotes: [],
+    updatedAt: null
+  },
   appearance: {
     theme: "mediaOled"
   },

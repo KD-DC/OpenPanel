@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OpenPanel - Calendar and Markets</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+      font-synthesis: none;
+      --canvas: #000;
+      --panel: #05080a;
+      --panel-raised: #0b1014;
+      --line: #1d282f;
+      --line-strong: #2b3942;
+      --text: #f5f8fa;
+      --muted: #8ea2af;
+      --dim: #5e707b;
+      --cyan: #42d9d0;
+      --blue: #60a5fa;
+      --green: #57df9b;
+      --red: #ff6b75;
+      --amber: #f6c85f;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      min-width: 1180px;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--canvas);
+      color: var(--text);
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+    }
+
+    .dashboard {
+      width: 1920px;
+      height: 550px;
+      padding: 12px 14px 16px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+      background: #000;
+    }
+
+    .widget {
+      min-width: 0;
+      height: 522px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .widget::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.015);
+    }
+
+    .widget-header {
+      height: 70px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #bed3df;
+      font-size: 15px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .eyebrow-icon {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      color: var(--cyan);
+      border: 1px solid #1d615e;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .header-meta {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 10px rgba(87,223,155,.45);
+    }
+
+    .icon-button {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      color: #b8c8d1;
+      background: #080c0f;
+      font-size: 19px;
+    }
+
+    /* Calendar */
+    .calendar-body {
+      height: 451px;
+      display: grid;
+      grid-template-columns: 245px 1fr;
+    }
+
+    .date-panel {
+      padding: 25px 24px;
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .weekday {
+      color: var(--cyan);
+      font-size: 17px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .date-number {
+      margin-top: 2px;
+      font-size: 104px;
+      line-height: .98;
+      font-weight: 300;
+      letter-spacing: 0;
+    }
+
+    .month-year {
+      margin-top: 6px;
+      color: #d9e2e7;
+      font-size: 21px;
+    }
+
+    .day-summary {
+      margin-top: 26px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    .summary-number {
+      font-size: 31px;
+      font-weight: 650;
+    }
+
+    .summary-label {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .focus-block {
+      margin-top: auto;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .focus-block strong { color: var(--text); }
+
+    .agenda {
+      padding: 18px 22px 16px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-width: 0;
+    }
+
+    .agenda-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0 4px 13px;
+    }
+
+    .agenda-title {
+      font-size: 22px;
+      font-weight: 650;
+    }
+
+    .agenda-range {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .events {
+      display: grid;
+      grid-template-rows: repeat(4, 1fr);
+      min-height: 0;
+    }
+
+    .event {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: 94px 5px minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      border-top: 1px solid var(--line);
+    }
+
+    .event:first-child {
+      border-top-color: #295a59;
+      background: linear-gradient(90deg, rgba(66,217,208,.07), transparent 75%);
+    }
+
+    .event-time {
+      color: #c8d5dc;
+      font-size: 16px;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .event-time span {
+      display: block;
+      margin-top: 3px;
+      color: var(--dim);
+      font-size: 12px;
+    }
+
+    .event-line {
+      width: 5px;
+      height: 50px;
+      border-radius: 3px;
+      background: var(--blue);
+    }
+
+    .event-line.cyan { background: var(--cyan); }
+    .event-line.amber { background: var(--amber); }
+    .event-line.green { background: var(--green); }
+
+    .event-copy { min-width: 0; }
+
+    .event-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 19px;
+      font-weight: 600;
+    }
+
+    .event-detail {
+      margin-top: 5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .event-status {
+      min-width: 84px;
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: right;
+      text-transform: uppercase;
+    }
+
+    /* Markets */
+    .market-body {
+      height: 451px;
+      display: grid;
+      grid-template-rows: 128px 1fr;
+    }
+
+    .market-summary {
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .market-stat {
+      min-width: 0;
+      padding-right: 18px;
+      border-right: 1px solid var(--line);
+    }
+
+    .market-stat:last-child { border-right: 0; }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      margin-top: 7px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 29px;
+      font-weight: 650;
+    }
+
+    .stat-note {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .positive { color: var(--green); }
+    .negative { color: var(--red); }
+
+    .watchlist {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: repeat(4, 1fr);
+      padding: 0 22px;
+    }
+
+    .stock-row {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: 154px 1fr 124px 112px;
+      gap: 20px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .stock-row:last-child { border-bottom: 0; }
+
+    .ticker {
+      font-size: 21px;
+      font-weight: 750;
+    }
+
+    .company {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .sparkline {
+      width: 100%;
+      height: 52px;
+      overflow: visible;
+    }
+
+    .sparkline .baseline {
+      stroke: #1b282f;
+      stroke-width: 1;
+    }
+
+    .sparkline .trace {
+      fill: none;
+      stroke: var(--green);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .sparkline.red .trace { stroke: var(--red); }
+
+    .price {
+      font-size: 22px;
+      font-weight: 650;
+      text-align: right;
+    }
+
+    .change {
+      font-size: 18px;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .change span {
+      display: block;
+      margin-top: 3px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .page-dots {
+      position: absolute;
+      left: 50%;
+      bottom: 5px;
+      z-index: 2;
+      display: flex;
+      gap: 10px;
+      transform: translateX(-50%);
+    }
+
+    .page-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #4f5d66;
+    }
+
+    .page-dot.active { background: var(--cyan); }
+  </style>
+</head>
+<body>
+  <main class="dashboard">
+    <section class="widget" aria-label="Google Calendar today view">
+      <header class="widget-header">
+        <div class="eyebrow">
+          <span class="eyebrow-icon">31</span>
+          Google Calendar
+        </div>
+        <div class="header-meta">
+          <span>Today</span>
+          <span class="icon-button" title="Open calendar">↗</span>
+        </div>
+      </header>
+      <div class="calendar-body">
+        <aside class="date-panel">
+          <div class="weekday">Tuesday</div>
+          <div class="date-number">29</div>
+          <div class="month-year">September 2026</div>
+          <div class="day-summary">
+            <div class="summary-number">4 events</div>
+            <div class="summary-label">2 hr 45 min scheduled</div>
+          </div>
+          <div class="focus-block">
+            Next free block<br />
+            <strong>2:30 PM – 5:00 PM</strong>
+          </div>
+        </aside>
+        <div class="agenda">
+          <div class="agenda-top">
+            <div class="agenda-title">Today’s agenda</div>
+            <div class="agenda-range">9:00 AM – 5:00 PM</div>
+          </div>
+          <div class="events">
+            <article class="event">
+              <div class="event-time">9:30 AM<span>30 min</span></div>
+              <div class="event-line cyan"></div>
+              <div class="event-copy">
+                <div class="event-name">Product design review</div>
+                <div class="event-detail">Google Meet · Product calendar</div>
+              </div>
+              <div class="event-status">Next · 24m</div>
+            </article>
+            <article class="event">
+              <div class="event-time">11:00 AM<span>45 min</span></div>
+              <div class="event-line"></div>
+              <div class="event-copy">
+                <div class="event-name">OpenPanel roadmap</div>
+                <div class="event-detail">Focus room · Personal</div>
+              </div>
+              <div class="event-status">In person</div>
+            </article>
+            <article class="event">
+              <div class="event-time">1:00 PM<span>60 min</span></div>
+              <div class="event-line amber"></div>
+              <div class="event-copy">
+                <div class="event-name">Lunch with Alex</div>
+                <div class="event-detail">The Smith · 901 F Street NW</div>
+              </div>
+              <div class="event-status">Personal</div>
+            </article>
+            <article class="event">
+              <div class="event-time">2:00 PM<span>30 min</span></div>
+              <div class="event-line green"></div>
+              <div class="event-copy">
+                <div class="event-name">Weekly metrics check-in</div>
+                <div class="event-detail">Google Meet · Operations</div>
+              </div>
+              <div class="event-status">Online</div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="widget" aria-label="Stock market watchlist">
+      <header class="widget-header">
+        <div class="eyebrow">
+          <span class="eyebrow-icon">$</span>
+          Market watchlist
+        </div>
+        <div class="header-meta">
+          <span class="live-dot"></span>
+          <span>Market open · 3h 18m left</span>
+          <span class="icon-button" title="Configure symbols">⋯</span>
+        </div>
+      </header>
+      <div class="market-body">
+        <div class="market-summary">
+          <div class="market-stat">
+            <div class="stat-label">S&amp;P 500</div>
+            <div class="stat-value">6,891.24</div>
+            <div class="stat-note positive">+0.64% today</div>
+          </div>
+          <div class="market-stat">
+            <div class="stat-label">Nasdaq</div>
+            <div class="stat-value">24,182.70</div>
+            <div class="stat-note positive">+0.91% today</div>
+          </div>
+          <div class="market-stat">
+            <div class="stat-label">Watchlist</div>
+            <div class="stat-value positive">+1.18%</div>
+            <div class="stat-note">3 advancing · 1 declining</div>
+          </div>
+        </div>
+        <div class="watchlist">
+          <article class="stock-row">
+            <div><div class="ticker">NVDA</div><div class="company">NVIDIA</div></div>
+            <svg class="sparkline" viewBox="0 0 360 52" preserveAspectRatio="none" aria-hidden="true">
+              <path class="baseline" d="M0 34 H360" />
+              <path class="trace" d="M0 40 L24 37 L49 39 L74 31 L98 34 L124 28 L149 30 L173 22 L198 25 L223 18 L248 21 L273 13 L299 17 L326 9 L360 12" />
+            </svg>
+            <div class="price">$191.42</div>
+            <div class="change positive">+2.31%<span>+$4.32</span></div>
+          </article>
+          <article class="stock-row">
+            <div><div class="ticker">AMD</div><div class="company">Advanced Micro Devices</div></div>
+            <svg class="sparkline" viewBox="0 0 360 52" preserveAspectRatio="none" aria-hidden="true">
+              <path class="baseline" d="M0 31 H360" />
+              <path class="trace" d="M0 37 L28 34 L51 38 L76 29 L101 31 L127 23 L151 27 L177 22 L203 24 L229 16 L255 19 L282 12 L308 16 L334 11 L360 8" />
+            </svg>
+            <div class="price">$228.16</div>
+            <div class="change positive">+1.84%<span>+$4.12</span></div>
+          </article>
+          <article class="stock-row">
+            <div><div class="ticker">MSFT</div><div class="company">Microsoft</div></div>
+            <svg class="sparkline" viewBox="0 0 360 52" preserveAspectRatio="none" aria-hidden="true">
+              <path class="baseline" d="M0 31 H360" />
+              <path class="trace" d="M0 32 L25 29 L50 31 L76 28 L101 30 L127 24 L153 27 L179 21 L205 25 L231 20 L256 22 L283 17 L309 19 L335 14 L360 16" />
+            </svg>
+            <div class="price">$548.73</div>
+            <div class="change positive">+0.72%<span>+$3.92</span></div>
+          </article>
+          <article class="stock-row">
+            <div><div class="ticker">TSLA</div><div class="company">Tesla</div></div>
+            <svg class="sparkline red" viewBox="0 0 360 52" preserveAspectRatio="none" aria-hidden="true">
+              <path class="baseline" d="M0 25 H360" />
+              <path class="trace" d="M0 13 L27 16 L53 12 L79 19 L105 17 L131 24 L157 21 L183 29 L209 26 L235 34 L261 31 L287 40 L313 36 L338 43 L360 39" />
+            </svg>
+            <div class="price">$431.05</div>
+            <div class="change negative">−0.96%<span>−$4.18</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <div class="page-dots" aria-hidden="true">
+      <span class="page-dot"></span>
+      <span class="page-dot active"></span>
+      <span class="page-dot"></span>
+    </div>
+  </main>
+  <style id="compact-widget-layout">
+    .compact-stage {
+      box-sizing: border-box;
+      width: 1920px;
+      height: 550px;
+      padding: 13px 14px 16px;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      gap: 14px;
+      background: #000;
+      color: #f5f8fa;
+      font-family: Inter, "Segoe UI", sans-serif;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .compact-widget {
+      box-sizing: border-box;
+      width: 304px;
+      height: 522px;
+      flex: 0 0 304px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid #293840;
+      border-radius: 6px;
+      background: #05080a;
+    }
+
+    .compact-header {
+      box-sizing: border-box;
+      min-height: 66px;
+      padding: 0 14px 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #1b272d;
+    }
+
+    .compact-heading {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: #c8dded;
+      font-size: 14px;
+      font-weight: 750;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .compact-heading svg { color: #869ca8; }
+
+    .compact-expand {
+      box-sizing: border-box;
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #2b3941;
+      border-radius: 6px;
+      background: #0b1115;
+      color: #c5d2d9;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .calendar-date {
+      min-height: 94px;
+      padding: 14px 20px 11px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+
+    .calendar-day { color: #58dbc7; font-size: 16px; font-weight: 750; }
+    .calendar-month { margin-top: 4px; color: #8299a5; font-size: 13px; }
+    .calendar-number { color: #f7fbfd; font-size: 58px; font-weight: 300; line-height: .9; }
+
+    .section-label {
+      padding: 0 20px 8px;
+      color: #778e9b;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .next-event {
+      margin: 0 12px 13px;
+      padding: 14px 14px 13px;
+      border-left: 3px solid #42d9c2;
+      background: #10181d;
+    }
+
+    .event-time-row,
+    .market-summary,
+    .compact-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .event-time { color: #55dec8; font-size: 13px; font-weight: 800; }
+    .event-countdown { color: #a9bac3; font-size: 11px; }
+    .event-title { margin-top: 9px; color: #f4f8fa; font-size: 18px; font-weight: 700; line-height: 1.2; }
+    .event-place { margin-top: 6px; color: #94a8b3; font-size: 12px; }
+
+    .agenda-list { padding: 0 20px; }
+    .agenda-row {
+      min-height: 49px;
+      display: grid;
+      grid-template-columns: 52px 5px 1fr;
+      gap: 10px;
+      align-items: center;
+      border-top: 1px solid #1b272d;
+    }
+
+    .agenda-time { color: #8da1ad; font-size: 12px; }
+    .agenda-mark { width: 4px; height: 24px; border-radius: 2px; background: #ffc957; }
+    .agenda-mark.blue { background: #62b8ff; }
+    .agenda-mark.pink { background: #ec7bb9; }
+    .agenda-title { overflow: hidden; color: #dfe8ed; font-size: 13px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+    .agenda-meta { margin-top: 2px; color: #718792; font-size: 10px; }
+
+    .market-summary {
+      min-height: 73px;
+      padding: 0 20px;
+      border-bottom: 1px solid #1b272d;
+    }
+
+    .market-state { display: flex; align-items: center; gap: 7px; color: #8ea4af; font-size: 12px; }
+    .market-dot { width: 7px; height: 7px; border-radius: 50%; background: #4cdbab; box-shadow: 0 0 10px rgba(76,219,171,.45); }
+    .market-total { text-align: right; }
+    .market-total strong { display: block; color: #55dcad; font-size: 19px; }
+    .market-total span { color: #718792; font-size: 10px; text-transform: uppercase; }
+
+    .stock-list { padding: 0 14px; }
+    .stock-row {
+      box-sizing: border-box;
+      height: 78px;
+      display: grid;
+      grid-template-columns: 58px 76px 1fr;
+      gap: 8px;
+      align-items: center;
+      border-bottom: 1px solid #1b272d;
+    }
+
+    .stock-symbol { color: #f1f6f8; font-size: 15px; font-weight: 800; }
+    .stock-name { margin-top: 3px; color: #6f8590; font-size: 9px; text-transform: uppercase; }
+    .spark { width: 76px; height: 33px; overflow: visible; }
+    .spark .grid { fill: none; stroke: #1c2a31; stroke-width: 1; }
+    .spark .line { fill: none; stroke: #50dca9; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+    .spark.down .line { stroke: #ff6b73; }
+    .stock-quote { min-width: 0; text-align: right; }
+    .stock-price { color: #edf4f7; font-size: 16px; font-weight: 700; }
+    .stock-change { margin-top: 4px; color: #52dbaa; font-size: 11px; font-weight: 750; }
+    .stock-change.down { color: #ff737a; }
+
+    .compact-footer {
+      min-height: 43px;
+      margin-top: auto;
+      padding: 0 20px;
+      border-top: 1px solid #1b272d;
+      color: #718792;
+      font-size: 10px;
+    }
+
+    .compact-footer strong { color: #b7c8d0; font-weight: 650; }
+    .compact-page-dots { position: absolute; bottom: 5px; left: 50%; display: flex; gap: 10px; transform: translateX(-50%); }
+    .compact-page-dots span { width: 10px; height: 10px; border-radius: 50%; background: #63737c; }
+    .compact-page-dots .active { background: #3bd8ca; }
+  </style>
+  <script>
+    const compactStyles = document.getElementById("compact-widget-layout").outerHTML;
+    document.body.innerHTML = compactStyles + `
+      <main class="compact-stage">
+        <section class="compact-widget" aria-label="Compact calendar widget">
+          <header class="compact-header">
+            <div class="compact-heading">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              Calendar
+            </div>
+            <button class="compact-expand" aria-label="Expand calendar">↗</button>
+          </header>
+          <div class="calendar-date">
+            <div><div class="calendar-day">Tuesday</div><div class="calendar-month">September 2026</div></div>
+            <div class="calendar-number">29</div>
+          </div>
+          <div class="section-label">Up next</div>
+          <div class="next-event">
+            <div class="event-time-row"><span class="event-time">9:30 AM</span><span class="event-countdown">in 24 min</span></div>
+            <div class="event-title">Product design review</div>
+            <div class="event-place">Google Meet · 45 min</div>
+          </div>
+          <div class="section-label">Later today</div>
+          <div class="agenda-list">
+            <div class="agenda-row"><div class="agenda-time">11:30</div><div class="agenda-mark"></div><div><div class="agenda-title">Engineering sync</div><div class="agenda-meta">Google Meet</div></div></div>
+            <div class="agenda-row"><div class="agenda-time">1:00</div><div class="agenda-mark blue"></div><div><div class="agenda-title">Lunch with Alex</div><div class="agenda-meta">The Smith</div></div></div>
+            <div class="agenda-row"><div class="agenda-time">2:00</div><div class="agenda-mark pink"></div><div><div class="agenda-title">Focus time</div><div class="agenda-meta">60 minutes</div></div></div>
+          </div>
+          <footer class="compact-footer"><span><strong>4 events</strong> today</span><span>Free after 2:30 PM</span></footer>
+        </section>
+
+        <section class="compact-widget" aria-label="Compact stocks widget">
+          <header class="compact-header">
+            <div class="compact-heading">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 16 4-5 3 3 5-7"/></svg>
+              Watchlist
+            </div>
+            <button class="compact-expand" aria-label="Expand watchlist">↗</button>
+          </header>
+          <div class="market-summary">
+            <div class="market-state"><span class="market-dot"></span>Market open</div>
+            <div class="market-total"><strong>+1.24%</strong><span>Watchlist today</span></div>
+          </div>
+          <div class="stock-list">
+            <div class="stock-row">
+              <div><div class="stock-symbol">NVDA</div><div class="stock-name">Nvidia</div></div>
+              <svg class="spark" viewBox="0 0 76 33"><path class="grid" d="M0 27H76"/><path class="line" d="M1 26 10 22 17 24 25 15 34 18 43 11 52 14 61 7 75 4"/></svg>
+              <div class="stock-quote"><div class="stock-price">$187.42</div><div class="stock-change">+2.18%</div></div>
+            </div>
+            <div class="stock-row">
+              <div><div class="stock-symbol">AMD</div><div class="stock-name">Advanced</div></div>
+              <svg class="spark down" viewBox="0 0 76 33"><path class="grid" d="M0 27H76"/><path class="line" d="M1 7 10 10 18 8 27 15 36 13 45 20 54 18 63 25 75 23"/></svg>
+              <div class="stock-quote"><div class="stock-price">$164.09</div><div class="stock-change down">−0.63%</div></div>
+            </div>
+            <div class="stock-row">
+              <div><div class="stock-symbol">MSFT</div><div class="stock-name">Microsoft</div></div>
+              <svg class="spark" viewBox="0 0 76 33"><path class="grid" d="M0 27H76"/><path class="line" d="M1 24 10 20 19 21 28 17 37 18 46 12 55 13 64 8 75 10"/></svg>
+              <div class="stock-quote"><div class="stock-price">$518.63</div><div class="stock-change">+0.84%</div></div>
+            </div>
+            <div class="stock-row">
+              <div><div class="stock-symbol">TSLA</div><div class="stock-name">Tesla</div></div>
+              <svg class="spark" viewBox="0 0 76 33"><path class="grid" d="M0 27H76"/><path class="line" d="M1 25 10 26 19 20 28 22 37 14 46 18 55 11 64 13 75 5"/></svg>
+              <div class="stock-quote"><div class="stock-price">$426.77</div><div class="stock-change">+1.56%</div></div>
+            </div>
+          </div>
+          <footer class="compact-footer"><span>4 symbols</span><span>Quotes delayed · Mock data</span></footer>
+        </section>
+        <div class="compact-page-dots" aria-hidden="true"><span></span><span class="active"></span><span></span></div>
+      </main>`;
+  </script>
+</body>
+</html>

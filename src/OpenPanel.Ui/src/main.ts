@@ -5,6 +5,7 @@ import "./styles/media-oled.css";
 import "./styles/environment.css";
 import "./styles/network-quality.css";
 import "./styles/peripherals-gaming.css";
+import "./styles/integrations.css";
 import { onHostMessage, startBridge } from "./bridge";
 import { renderDashboard } from "./app";
 import { initialState } from "./state/store";

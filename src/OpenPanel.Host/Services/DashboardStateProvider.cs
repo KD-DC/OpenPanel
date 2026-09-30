@@ -13,6 +13,8 @@ public sealed class DashboardStateProvider
         MediaSummary media,
         AudioSummary audio,
         WeatherSummary weather,
+        CalendarSummary calendar,
+        StockMarketSummary stocks,
         string appearance,
         WidgetConfigurationSummary widgets,
         DisplaySummary display)
@@ -29,6 +31,8 @@ public sealed class DashboardStateProvider
             media,
             audio,
             weather,
+            calendar,
+            stocks,
             new AppearanceSummary(appearance),
             widgets,
             display);
